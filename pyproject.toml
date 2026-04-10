@@ -1,0 +1,23 @@
+[project]
+name = "cardio-trace-backend-api"
+version = "0.1.0"
+description = "Core Cardio Trace domain backend (Django DRF writes) backed by PostgreSQL."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "django",
+    "djangorestframework",
+    "psycopg[binary]",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-django",
+    "ruff",
+    "mypy",
+    "django-stubs",
+    "djangorestframework-stubs",
+    "pre-commit",
+]
