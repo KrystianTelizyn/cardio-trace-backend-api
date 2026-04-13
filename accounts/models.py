@@ -84,6 +84,7 @@ class DoctorProfile(models.Model):
         related_name="doctor_profile",
     )
     name = models.CharField(max_length=255, blank=True, default="")
+    surname = models.CharField(max_length=255, blank=True, default="")
     specialization = models.CharField(max_length=255, blank=True, default="")
     license_number = models.CharField(max_length=255, blank=True, default="")
 
@@ -98,6 +99,7 @@ class PatientProfile(models.Model):
         related_name="patient_profile",
     )
     name = models.CharField(max_length=255, blank=True, default="")
+    surname = models.CharField(max_length=255, blank=True, default="")
     dob = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=50, blank=True, default="")
     medical_id = models.CharField(max_length=255, blank=True, default="")
