@@ -14,6 +14,21 @@ class UserProvisionInputSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, default="")
 
 
+class DoctorProfileUpdateInputSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False)
+    surname = serializers.CharField(required=False)
+    specialization = serializers.CharField(required=False)
+    license_number = serializers.CharField(required=False)
+
+
+class PatientProfileUpdateInputSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False)
+    surname = serializers.CharField(required=False)
+    dob = serializers.DateField(required=False)
+    gender = serializers.CharField(required=False)
+    medical_id = serializers.CharField(required=False)
+
+
 # --- Nested profile outputs (reused across endpoints) ---
 
 
