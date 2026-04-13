@@ -34,7 +34,11 @@ class ProvisionUser:
                 created = True
         except IntegrityError:
             created = False
-            user = User.objects.filter(auth0_user_id=auth0_user_id).first()
+            user = User.objects.filter(
+                auth0_user_id=auth0_user_id,
+                tenant=tenant,
+                role=role,
+            ).first()
             if not user:
                 raise
         return user, created
