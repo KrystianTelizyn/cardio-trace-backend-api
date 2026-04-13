@@ -90,3 +90,7 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
+
+REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "config.exception_handler.custom_exception_handler",
+}
