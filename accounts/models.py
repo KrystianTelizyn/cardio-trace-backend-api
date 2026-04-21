@@ -54,7 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         DOCTOR = "doctor"
         PATIENT = "patient"
 
-    auth0_user_id = models.CharField(max_length=255, unique=True)
+    auth0_user_id = models.CharField(max_length=255)
     email = models.EmailField()
     tenant = models.ForeignKey(
         Tenant,
@@ -70,8 +70,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = "auth0_user_id"
-    REQUIRED_FIELDS = ["email"]
+    USERNAME_FIELD = "id"
+    REQUIRED_FIELDS = ["auth0_user_id", "email"]
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["auth0_user_id", "tenant", "role"],
+                name="unique_user_membership_per_tenant_role",
+            )
+        ]
 
     def __str__(self):
         return self.email
@@ -84,6 +92,7 @@ class DoctorProfile(models.Model):
         related_name="doctor_profile",
     )
     name = models.CharField(max_length=255, blank=True, default="")
+    surname = models.CharField(max_length=255, blank=True, default="")
     specialization = models.CharField(max_length=255, blank=True, default="")
     license_number = models.CharField(max_length=255, blank=True, default="")
 
@@ -98,6 +107,7 @@ class PatientProfile(models.Model):
         related_name="patient_profile",
     )
     name = models.CharField(max_length=255, blank=True, default="")
+    surname = models.CharField(max_length=255, blank=True, default="")
     dob = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=50, blank=True, default="")
     medical_id = models.CharField(max_length=255, blank=True, default="")
