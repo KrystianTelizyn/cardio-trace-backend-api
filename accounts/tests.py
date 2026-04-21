@@ -259,8 +259,6 @@ class GatewayAuthenticationTests(TestCase):
         assert user.pk == self.user.pk
         assert auth_info["role"] == "doctor"
         assert auth_info["tenant_id"] == "org_auth_test"
-        assert request.tenant == self.tenant  # type: ignore[attr-defined]
-        assert request.role == "doctor"  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------

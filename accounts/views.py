@@ -17,8 +17,8 @@ from config.authentication import GatewayAuthentication
 
 
 class UserProvisionView(APIView):
-    authentication_classes = []  # type: ignore[assignment]
-    permission_classes = []  # type: ignore[assignment]
+    authentication_classes = []
+    permission_classes = []
 
     def post(self, request: Request) -> Response:
         serializer = UserProvisionInputSerializer(data=request.data)
@@ -36,7 +36,7 @@ class ProfileUpdateView(APIView):
     permission_classes = []
 
     def patch(self, request: Request) -> Response:
-        if request.user.role == User.Role.DOCTOR:  # type: ignore[union-attr]
+        if request.auth.get("role", "") == User.Role.DOCTOR:
             serializer = DoctorProfileUpdateInputSerializer(data=request.data)
             output_serializer = DoctorProfileSerializer
         else:

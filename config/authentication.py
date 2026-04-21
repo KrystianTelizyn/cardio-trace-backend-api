@@ -34,7 +34,4 @@ class GatewayAuthentication(BaseAuthentication):
         if not user:
             raise AuthenticationFailed("User not found.")
 
-        request.tenant = user.tenant  # type: ignore[attr-defined]
-        request.role = role  # type: ignore[attr-defined]
-
         return user, {"role": role, "tenant_id": tenant_id}
