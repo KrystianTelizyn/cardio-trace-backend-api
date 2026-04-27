@@ -14,6 +14,7 @@ Core domain service for the Cardio Trace platform — owns all business data and
 - Python 3.13+
 - [uv](https://docs.astral.sh/uv/)
 - Docker (for PostgreSQL)
+- Docker Compose (for full app + database)
 
 ## Getting Started
 
@@ -37,6 +38,18 @@ make migrate
 # Start the dev server
 make runserver
 ```
+
+## Run with Docker Compose
+
+```bash
+# Copy env file and fill in values
+cp .env.example .env
+
+# Build and start API + PostgreSQL
+docker compose up --build
+```
+
+The API will be available at `http://localhost:8000`.
 
 ## Available Make Targets
 

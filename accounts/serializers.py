@@ -1,9 +1,5 @@
 from rest_framework import serializers
-
 from accounts.models import User
-
-
-# --- Input ---
 
 
 class UserProvisionInputSerializer(serializers.Serializer):
@@ -14,7 +10,19 @@ class UserProvisionInputSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, default="")
 
 
-# --- Nested profile outputs (reused across endpoints) ---
+class DoctorProfileUpdateInputSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False)
+    surname = serializers.CharField(required=False)
+    specialization = serializers.CharField(required=False)
+    license_number = serializers.CharField(required=False)
+
+
+class PatientProfileUpdateInputSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False)
+    surname = serializers.CharField(required=False)
+    dob = serializers.DateField(required=False)
+    gender = serializers.CharField(required=False)
+    medical_id = serializers.CharField(required=False)
 
 
 class DoctorProfileSerializer(serializers.Serializer):
@@ -32,9 +40,6 @@ class PatientProfileSerializer(serializers.Serializer):
     dob = serializers.DateField()
     gender = serializers.CharField()
     medical_id = serializers.CharField()
-
-
-# --- Output ---
 
 
 class UserProvisionOutputSerializer(serializers.Serializer):

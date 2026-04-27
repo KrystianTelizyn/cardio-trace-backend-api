@@ -1,5 +1,8 @@
+from typing import Any
+
 from django.db import transaction
 from django.db.utils import IntegrityError
+
 from accounts.exceptions import TenantNotFound
 from accounts.models import DoctorProfile, PatientProfile, Tenant, User
 
@@ -42,3 +45,16 @@ class ProvisionUser:
             if not user:
                 raise
         return user, created
+
+
+class UpdateProfile:
+    def execute(self, *, user: User, **fields: Any) -> DoctorProfile | PatientProfile:
+        if user.role == User.Role.DOCTOR:
+            profile = user.doctor_profile
+        else:
+            profile = user.patient_profile
+
+        for key, value in fields.items():
+            setattr(profile, key, value)
+        profile.save(update_fields=list(fields.keys()))
+        return profile

@@ -1,0 +1,10 @@
+.git
+.gitignore
+.cursor
+.venv
+__pycache__
+*.pyc
+.env
+docs
+agent-transcripts
+terminals
