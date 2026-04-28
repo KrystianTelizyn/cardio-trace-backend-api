@@ -3,9 +3,6 @@ services:
     image: cardio-trace-backend-api:dev
     env_file:
       - .env
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
     ports:
       - "8000:8000"
     depends_on:
@@ -16,10 +13,8 @@ services:
     image: postgres:17
     container_name: cardio-trace-pg
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME:-cardio_trace}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    env_file:
+      - .env
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
