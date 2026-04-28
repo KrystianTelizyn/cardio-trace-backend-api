@@ -21,3 +21,8 @@ dev = [
     "djangorestframework-stubs",
     "pre-commit",
 ]
+
+[dependency-groups]
+dev = [
+    "factory-boy>=3.3.3",
+]
