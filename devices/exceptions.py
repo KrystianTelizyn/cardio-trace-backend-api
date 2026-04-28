@@ -9,3 +9,21 @@ class DeviceAlreadyExistsError(DomainException):
 
     def __init__(self, serial_number: str):
         super().__init__(serial_number=serial_number)
+
+
+class DeviceNotFoundError(DomainException):
+    code: str = "device_not_found"
+    message_template: str = "Device with id {device_id} not found"
+    status_code: int = status.HTTP_400_BAD_REQUEST
+
+    def __init__(self, device_id: int):
+        super().__init__(device_id=device_id)
+
+
+class PatientProfileNotFoundError(DomainException):
+    code: str = "patient_profile_not_found"
+    message_template: str = "Patient profile with id {patient_profile_id} not found"
+    status_code: int = status.HTTP_400_BAD_REQUEST
+
+    def __init__(self, patient_profile_id: int):
+        super().__init__(patient_profile_id=patient_profile_id)

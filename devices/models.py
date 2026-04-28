@@ -1,6 +1,6 @@
 from django.db import models
 
-from accounts.models import Tenant
+from accounts.models import PatientProfile, Tenant, DoctorProfile
 
 
 class Device(models.Model):
@@ -12,6 +12,8 @@ class Device(models.Model):
         on_delete=models.CASCADE,
         related_name="devices",
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
@@ -23,3 +25,28 @@ class Device(models.Model):
 
     def __str__(self):
         return f"{self.brand}|{self.name}|{self.serial_number}"
+
+
+class DeviceAssignment(models.Model):
+    device = models.ForeignKey(
+        Device, on_delete=models.CASCADE, related_name="device_assignments"
+    )
+    patient = models.ForeignKey(
+        PatientProfile, on_delete=models.CASCADE, related_name="device_assignments"
+    )
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="device_assignments"
+    )
+    doctor = models.ForeignKey(
+        DoctorProfile, on_delete=models.CASCADE, related_name="device_assignments"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["device", "patient", "tenant"],
+                name="unique_device_assignment_per_tenant",
+            ),
+        ]

@@ -12,3 +12,14 @@ class DeviceCreateOutputSerializer(serializers.Serializer):
     serial_number = serializers.CharField(read_only=True)
     brand = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
+
+
+class DeviceAssignmentInputSerializer(serializers.Serializer):
+    device_id = serializers.IntegerField(required=True)
+    patient_profile_id = serializers.IntegerField(required=True)
+
+
+class DeviceAssignmentOutputSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    device_id = serializers.IntegerField(read_only=True)
+    patient_profile_id = serializers.IntegerField(read_only=True)
