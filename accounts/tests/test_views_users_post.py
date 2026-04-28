@@ -56,6 +56,7 @@ class UserProvisionViewTests(ApiClientMixin, TenantUsersMixin, TestCase):
         payload = {**self.valid_payload, "auth0_org_id": "org_does_not_exist"}
         response = self.client.post("/users", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.json()["error"]["code"], "tenant_not_found")
         self.assertIn("org_does_not_exist", response.json()["error"]["message"])
 
     def test_patient_creation_returns_patient_profile(self) -> None:
