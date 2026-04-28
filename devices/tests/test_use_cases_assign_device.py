@@ -1,6 +1,10 @@
 from django.test import TestCase
 
-from devices.exceptions import DeviceNotFoundError, PatientProfileNotFoundError
+from devices.exceptions import (
+    DeviceAssignmentAlreadyExistsError,
+    DeviceNotFoundError,
+    PatientProfileNotFoundError,
+)
 from devices.use_cases import AssignDevice
 from tests.mixins import DevicesFixtureMixin, TenantUsersMixin
 
@@ -32,6 +36,22 @@ class AssignDeviceUseCaseTests(TenantUsersMixin, DevicesFixtureMixin, TestCase):
             AssignDevice().execute(
                 device_id=self.device.id,
                 patient_profile_id=9999999999,
+                doctor_profile=self.doctor_profile,
+                tenant=self.tenant,
+            )
+
+    def test_raises_exception_on_duplicate_assignment(self) -> None:
+        AssignDevice().execute(
+            device_id=self.device.id,
+            patient_profile_id=self.patient_profile.id,
+            doctor_profile=self.doctor_profile,
+            tenant=self.tenant,
+        )
+
+        with self.assertRaises(DeviceAssignmentAlreadyExistsError):
+            AssignDevice().execute(
+                device_id=self.device.id,
+                patient_profile_id=self.patient_profile.id,
                 doctor_profile=self.doctor_profile,
                 tenant=self.tenant,
             )

@@ -52,6 +52,10 @@ class CreateDeviceViewTests(
         self.assertEqual(good_response.status_code, status.HTTP_201_CREATED)
         bad_response = self.client.post(**request_args)
         self.assertEqual(bad_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            bad_response.json()["error"]["code"],
+            "device_already_exists",
+        )
 
     def test_returns_400_for_invalid_data(self) -> None:
         request_args = {

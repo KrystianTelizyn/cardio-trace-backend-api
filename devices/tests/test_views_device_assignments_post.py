@@ -74,6 +74,10 @@ class AssignDeviceViewTests(
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json()["error"]["code"],
+            "device_not_found",
+        )
 
     def test_returns_400_for_unknown_patient(self) -> None:
         response = self.client.post(
@@ -87,3 +91,33 @@ class AssignDeviceViewTests(
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json()["error"]["code"],
+            "patient_profile_not_found",
+        )
+
+    def test_returns_400_for_duplicate_assignment(self) -> None:
+        request_data = {
+            "device_id": self.device.id,
+            "patient_profile_id": self.patient_profile.id,
+        }
+
+        first_response = self.client.post(
+            "/device-assignments",
+            data=request_data,
+            headers=self.headers_for(self.doctor_user),
+            format="json",
+        )
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        second_response = self.client.post(
+            "/device-assignments",
+            data=request_data,
+            headers=self.headers_for(self.doctor_user),
+            format="json",
+        )
+        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            second_response.json()["error"]["code"],
+            "device_assignment_already_exists",
+        )
