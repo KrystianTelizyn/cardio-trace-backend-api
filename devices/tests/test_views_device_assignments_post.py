@@ -8,6 +8,7 @@ from tests.mixins import (
     GatewayAuthMixin,
     TenantUsersMixin,
 )
+from tests.factories import PatientProfileFactory, PatientUserFactory
 
 
 class AssignDeviceViewTests(
@@ -119,5 +120,23 @@ class AssignDeviceViewTests(
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
             second_response.json()["error"]["code"],
+            "device_assignment_already_exists",
+        )
+
+        other_patient_user = PatientUserFactory(tenant=self.tenant)
+        other_patient_profile = PatientProfileFactory(user=other_patient_user)
+        other_request_data = {
+            "device_id": self.device.id,
+            "patient_profile_id": other_patient_profile.id,
+        }
+        third_response = self.client.post(
+            "/device-assignments",
+            data=other_request_data,
+            headers=self.headers_for(self.doctor_user),
+            format="json",
+        )
+        self.assertEqual(third_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            third_response.json()["error"]["code"],
             "device_assignment_already_exists",
         )

@@ -7,6 +7,7 @@ from devices.exceptions import (
     DeviceAssignmentAlreadyExistsError,
     DeviceAlreadyExistsError,
     DeviceNotFoundError,
+    DeviceAssignmentNotFoundError,
     PatientProfileNotFoundError,
 )
 
@@ -62,3 +63,15 @@ class AssignDevice:
             raise DeviceAssignmentAlreadyExistsError(
                 device_id=device_id, patient_profile_id=patient_profile_id
             ) from exc
+
+
+class DeleteDeviceAssignment:
+    def execute(self, *, assignment_id: int, tenant: Tenant) -> None:
+        assignment = DeviceAssignment.objects.filter(
+            id=assignment_id,
+            tenant=tenant,
+        ).first()
+        if not assignment:
+            raise DeviceAssignmentNotFoundError(assignment_id)
+
+        assignment.delete()
