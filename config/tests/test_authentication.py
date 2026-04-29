@@ -7,6 +7,7 @@ from config.authentication import (
     HEADER_TENANT_ID,
     HEADER_USER_ID,
     GatewayAuthentication,
+    InternalTenantAuthentication,
 )
 from tests.mixins import TenantUsersMixin
 
@@ -98,4 +99,37 @@ class GatewayAuthenticationTests(TenantUsersMixin, TestCase):
         user, auth_info = result
         self.assertEqual(user.pk, self.user.pk)
         self.assertEqual(auth_info["role"], "doctor")
+        self.assertEqual(auth_info["tenant_id"], self.tenant.auth0_organization_id)
+
+
+class InternalTenantAuthenticationTests(TenantUsersMixin, TestCase):
+    def setUp(self) -> None:
+        self.factory = APIRequestFactory()
+        self.auth = InternalTenantAuthentication()
+
+    def test_raises_when_tenant_header_missing(self) -> None:
+        request = self.factory.get("/measurements")
+        with self.assertRaisesRegex(
+            AuthenticationFailed, "Missing required internal tenant header"
+        ):
+            self.auth.authenticate(request)
+
+    def test_raises_when_unknown_tenant(self) -> None:
+        request = self.factory.get("/measurements", **{HEADER_TENANT_ID: "org_missing"})  # type: ignore[arg-type]
+        with self.assertRaisesRegex(AuthenticationFailed, "Tenant not found"):
+            self.auth.authenticate(request)
+
+    def test_returns_anonymous_user_and_tenant_on_success(self) -> None:
+        request = self.factory.get(
+            "/measurements",
+            **{  # type: ignore[arg-type]
+                HEADER_TENANT_ID: self.tenant.auth0_organization_id,
+            },
+        )
+        result = self.auth.authenticate(request)
+        self.assertIsNotNone(result)
+
+        user, auth_info = result
+        self.assertFalse(user.is_authenticated)
+        self.assertEqual(auth_info["tenant"].pk, self.tenant.pk)
         self.assertEqual(auth_info["tenant_id"], self.tenant.auth0_organization_id)
