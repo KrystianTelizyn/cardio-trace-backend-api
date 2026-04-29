@@ -46,7 +46,7 @@ class DeviceAssignment(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["device", "patient", "tenant"],
-                name="unique_device_assignment_per_tenant",
+                fields=["device", "tenant"],
+                name="unique_active_device_assignment_per_tenant",
             ),
         ]

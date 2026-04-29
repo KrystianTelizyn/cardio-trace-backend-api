@@ -7,6 +7,7 @@ from devices.exceptions import (
 )
 from devices.use_cases import AssignDevice
 from tests.mixins import DevicesFixtureMixin, TenantUsersMixin
+from tests.factories import PatientProfileFactory, PatientUserFactory
 
 
 class AssignDeviceUseCaseTests(TenantUsersMixin, DevicesFixtureMixin, TestCase):
@@ -52,6 +53,27 @@ class AssignDeviceUseCaseTests(TenantUsersMixin, DevicesFixtureMixin, TestCase):
             AssignDevice().execute(
                 device_id=self.device.id,
                 patient_profile_id=self.patient_profile.id,
+                doctor_profile=self.doctor_profile,
+                tenant=self.tenant,
+            )
+
+    def test_raises_exception_on_duplicate_assignment_for_different_patient(
+        self,
+    ) -> None:
+        AssignDevice().execute(
+            device_id=self.device.id,
+            patient_profile_id=self.patient_profile.id,
+            doctor_profile=self.doctor_profile,
+            tenant=self.tenant,
+        )
+
+        other_patient_user = PatientUserFactory(tenant=self.tenant)
+        other_patient_profile = PatientProfileFactory(user=other_patient_user)
+
+        with self.assertRaises(DeviceAssignmentAlreadyExistsError):
+            AssignDevice().execute(
+                device_id=self.device.id,
+                patient_profile_id=other_patient_profile.id,
                 doctor_profile=self.doctor_profile,
                 tenant=self.tenant,
             )
