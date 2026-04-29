@@ -26,7 +26,11 @@ class IngestMeasurement:
             tenant=tenant,
         ).first()
         if not device:
-            raise DeviceBySerialNotFoundError(serial_number)
+            raise DeviceBySerialNotFoundError(
+                serial_number=serial_number,
+                brand=brand,
+                tenant_id=tenant.id,
+            )
 
         assignment = (
             DeviceAssignment.objects.filter(device=device, tenant=tenant)
@@ -35,7 +39,11 @@ class IngestMeasurement:
             .first()
         )
         if not assignment:
-            raise DeviceHasNoActiveAssignmentError(serial_number)
+            raise DeviceHasNoActiveAssignmentError(
+                serial_number=serial_number,
+                brand=brand,
+                tenant_id=tenant.id,
+            )
 
         return Measurement.objects.create(
             device=device,
