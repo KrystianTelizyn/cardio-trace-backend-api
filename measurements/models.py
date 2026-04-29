@@ -24,4 +24,3 @@ class Measurement(models.Model):
     heart_rate = models.FloatField()
     hrv = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
