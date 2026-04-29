@@ -32,9 +32,18 @@ class PatientProfileNotFoundError(DomainException):
 class DeviceAssignmentAlreadyExistsError(DomainException):
     code: str = "device_assignment_already_exists"
     message_template: str = (
-        "Device {device_id} is already assigned to patient {patient_profile_id}"
+        "Device {device_id} already has an active assignment in this tenant"
     )
     status_code: int = status.HTTP_400_BAD_REQUEST
 
     def __init__(self, device_id: int, patient_profile_id: int) -> None:
         super().__init__(device_id=device_id, patient_profile_id=patient_profile_id)
+
+
+class DeviceAssignmentNotFoundError(DomainException):
+    code: str = "device_assignment_not_found"
+    message_template: str = "Device assignment with id {assignment_id} not found"
+    status_code: int = status.HTTP_404_NOT_FOUND
+
+    def __init__(self, assignment_id: int) -> None:
+        super().__init__(assignment_id=assignment_id)
