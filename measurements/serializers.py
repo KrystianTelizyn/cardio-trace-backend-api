@@ -41,3 +41,14 @@ class MeasurementSessionStartOutputSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     started_at = serializers.DateTimeField(read_only=True)
     status = serializers.CharField(read_only=True)
+
+
+class MeasurementSessionStopInputSerializer(serializers.Serializer):
+    stopped_at = serializers.DateTimeField(required=False)
+
+
+class MeasurementSessionStopOutputSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    started_at = serializers.DateTimeField(read_only=True)
+    stopped_at = serializers.DateTimeField(read_only=True)
+    status = serializers.CharField(read_only=True)

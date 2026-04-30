@@ -7,6 +7,7 @@ from measurements.exceptions import (
     ActiveMeasurementSessionAlreadyExistsError,
     MeasurementDroppedSessionStopped,
     MeasurementSessionAssignmentNotFoundError,
+    MeasurementSessionInvalidStopTimeError,
     MeasurementSessionNotFoundError,
     MeasurementSessionStartOutsideAssignmentWindowError,
 )
@@ -88,3 +89,36 @@ class StartMeasurementSession:
             device_assignment=assignment,
             started_at=effective_started_at,
         )
+
+
+class StopMeasurementSession:
+    def execute(
+        self,
+        *,
+        measurement_session_id: str,
+        tenant: Tenant,
+        stopped_at: datetime | None = None,
+    ) -> MeasurementSession:
+        measurement_session = MeasurementSession.objects.filter(
+            id=measurement_session_id,
+            tenant=tenant,
+        ).first()
+        if not measurement_session:
+            raise MeasurementSessionNotFoundError(
+                measurement_session_id=measurement_session_id,
+                tenant_id=tenant.id,
+            )
+
+        if not measurement_session.is_active:
+            return measurement_session
+
+        effective_stopped_at = stopped_at or timezone.now()
+        if effective_stopped_at <= measurement_session.started_at:
+            raise MeasurementSessionInvalidStopTimeError(
+                measurement_session_id=measurement_session_id,
+                stopped_at=effective_stopped_at.isoformat(),
+            )
+
+        measurement_session.stopped_at = effective_stopped_at
+        measurement_session.save(update_fields=["stopped_at"])
+        return measurement_session

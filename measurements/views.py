@@ -7,10 +7,16 @@ from config.authentication import GatewayAuthentication, InternalTenantAuthentic
 from measurements.serializers import (
     MeasurementIngestInputSerializer,
     MeasurementIngestOutputSerializer,
+    MeasurementSessionStopInputSerializer,
+    MeasurementSessionStopOutputSerializer,
     MeasurementSessionStartOutputSerializer,
     MeasurementSessionStartInputSerializer,
 )
-from measurements.use_cases import IngestMeasurement, StartMeasurementSession
+from measurements.use_cases import (
+    IngestMeasurement,
+    StartMeasurementSession,
+    StopMeasurementSession,
+)
 
 
 class MeasurementIngestView(APIView):
@@ -49,3 +55,20 @@ class MeasurementSessionStartView(APIView):
         )
         output = MeasurementSessionStartOutputSerializer(measurement_session)
         return Response(output.data, status=status.HTTP_201_CREATED)
+
+
+class MeasurementSessionStopView(APIView):
+    authentication_classes = [GatewayAuthentication]
+    permission_classes = []
+
+    def patch(self, request: Request, session_id: str) -> Response:
+        serializer = MeasurementSessionStopInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        measurement_session = StopMeasurementSession().execute(
+            measurement_session_id=session_id,
+            tenant=request.user.tenant,
+            stopped_at=serializer.validated_data.get("stopped_at"),
+        )
+        output = MeasurementSessionStopOutputSerializer(measurement_session)
+        return Response(output.data, status=status.HTTP_200_OK)
