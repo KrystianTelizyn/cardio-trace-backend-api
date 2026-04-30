@@ -26,7 +26,11 @@ class Migration(migrations.Migration):
                 to="measurements.measurementsession",
             ),
         ),
-        migrations.AlterField(
+        migrations.RemoveField(
+            model_name="measurement",
+            name="id",
+        ),
+        migrations.AddField(
             model_name="measurement",
             name="id",
             field=models.UUIDField(

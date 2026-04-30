@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 from zoneinfo import ZoneInfo
 
 from django.test import TestCase
@@ -6,24 +7,20 @@ from django.utils import timezone
 
 from devices.models import DeviceAssignment
 from measurements.exceptions import (
-    DeviceBySerialNotFoundError,
-    DeviceHasNoActiveAssignmentError,
+    MeasurementDroppedSessionStopped,
+    MeasurementSessionNotFoundError,
 )
+from measurements.models import MeasurementSession
 from measurements.use_cases import IngestMeasurement
-from tests.factories import (
-    DeviceFactory,
-    DoctorProfileFactory,
-    PatientProfileFactory,
-    PatientUserFactory,
-)
+from tests.factories import DeviceFactory, DoctorProfileFactory
 from tests.mixins import DevicesFixtureMixin, TenantUsersMixin, WrongTenantMixin
 
 
 class IngestMeasurementUseCaseTests(
     TenantUsersMixin, WrongTenantMixin, DevicesFixtureMixin, TestCase
 ):
-    def test_creates_measurement_for_device_assignment(self) -> None:
-        DeviceAssignment.objects.create(
+    def test_creates_measurement_for_session(self) -> None:
+        assignment = DeviceAssignment.objects.create(
             device=self.device,
             patient=self.patient_profile,
             doctor=self.doctor_profile,
@@ -31,49 +28,40 @@ class IngestMeasurementUseCaseTests(
             assigned_at=timezone.now(),
             unassigned_at=None,
         )
+        measurement_session = MeasurementSession.objects.create(
+            tenant=self.tenant,
+            device_assignment=assignment,
+            started_at=timezone.now(),
+        )
 
         timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
         measurement = IngestMeasurement().execute(
-            serial_number=self.device.serial_number,
-            brand=self.device.brand,
+            measurement_session_id=measurement_session.id,
             tenant=self.tenant,
             timestamp=timestamp,
             heart_rate=75.5,
             hrv=42.3,
         )
 
-        self.assertEqual(measurement.device, self.device)
-        self.assertEqual(measurement.patient, self.patient_profile)
+        self.assertIsInstance(measurement.id, uuid.UUID)
+        self.assertEqual(measurement.measurement_session, measurement_session)
         self.assertEqual(measurement.tenant, self.tenant)
         self.assertEqual(measurement.timestamp, timestamp)
         self.assertEqual(measurement.heart_rate, 75.5)
         self.assertEqual(measurement.hrv, 42.3)
 
-    def test_raises_device_not_found_for_unknown_serial_number(self) -> None:
-        with self.assertRaises(DeviceBySerialNotFoundError):
+    def test_raises_session_not_found_for_unknown_id(self) -> None:
+        with self.assertRaises(MeasurementSessionNotFoundError):
             IngestMeasurement().execute(
-                serial_number="UNKNOWN-SN",
-                brand=self.device.brand,
+                measurement_session_id="01JZZZZZZZZZZZZZZZZZZZZZZZ",
                 tenant=self.tenant,
                 timestamp=datetime.now(tz=ZoneInfo("UTC")),
                 heart_rate=70.0,
                 hrv=30.0,
             )
 
-    def test_raises_conflict_when_device_has_no_assignment(self) -> None:
-        with self.assertRaises(DeviceHasNoActiveAssignmentError):
-            IngestMeasurement().execute(
-                serial_number=self.device.serial_number,
-                brand=self.device.brand,
-                tenant=self.tenant,
-                timestamp=datetime.now(tz=ZoneInfo("UTC")),
-                heart_rate=70.0,
-                hrv=30.0,
-            )
-
-    def test_resolves_device_assignment_within_tenant(self) -> None:
-        # Primary tenant assignment
-        DeviceAssignment.objects.create(
+    def test_raises_accepted_drop_when_session_is_stopped(self) -> None:
+        assignment = DeviceAssignment.objects.create(
             device=self.device,
             patient=self.patient_profile,
             doctor=self.doctor_profile,
@@ -81,8 +69,37 @@ class IngestMeasurementUseCaseTests(
             assigned_at=timezone.now(),
             unassigned_at=None,
         )
+        measurement_session = MeasurementSession.objects.create(
+            tenant=self.tenant,
+            device_assignment=assignment,
+            started_at=timezone.now(),
+            stopped_at=timezone.now(),
+        )
 
-        # Another tenant with a device using the same serial number
+        with self.assertRaises(MeasurementDroppedSessionStopped):
+            IngestMeasurement().execute(
+                measurement_session_id=measurement_session.id,
+                tenant=self.tenant,
+                timestamp=datetime.now(tz=ZoneInfo("UTC")),
+                heart_rate=70.0,
+                hrv=30.0,
+            )
+
+    def test_resolves_measurement_session_within_tenant(self) -> None:
+        assignment = DeviceAssignment.objects.create(
+            device=self.device,
+            patient=self.patient_profile,
+            doctor=self.doctor_profile,
+            tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
+        )
+        measurement_session = MeasurementSession.objects.create(
+            tenant=self.tenant,
+            device_assignment=assignment,
+            started_at=timezone.now(),
+        )
+
         other_device = DeviceFactory(
             tenant=self.other_tenant,
             serial_number=self.device.serial_number,
@@ -93,7 +110,7 @@ class IngestMeasurementUseCaseTests(
             user=self.other_doctor_user,
             name="Other Doc",
         )
-        DeviceAssignment.objects.create(
+        other_assignment = DeviceAssignment.objects.create(
             device=other_device,
             patient=self.other_patient_profile,
             doctor=other_doctor_profile,
@@ -101,11 +118,15 @@ class IngestMeasurementUseCaseTests(
             assigned_at=timezone.now(),
             unassigned_at=None,
         )
+        MeasurementSession.objects.create(
+            tenant=self.other_tenant,
+            device_assignment=other_assignment,
+            started_at=timezone.now(),
+        )
 
         timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
         measurement = IngestMeasurement().execute(
-            serial_number=self.device.serial_number,
-            brand=self.device.brand,
+            measurement_session_id=measurement_session.id,
             tenant=self.tenant,
             timestamp=timestamp,
             heart_rate=75.5,
@@ -113,54 +134,4 @@ class IngestMeasurementUseCaseTests(
         )
 
         self.assertEqual(measurement.tenant, self.tenant)
-        self.assertEqual(measurement.patient, self.patient_profile)
-
-    def test_resolves_device_assignment_by_brand_within_tenant(self) -> None:
-        """
-        The same `serial_number` can exist across different brands inside a tenant.
-        In that case, ingestion must resolve the device/assignment by both fields.
-        """
-
-        # Brand under test (brand1): uses the fixture device + patient
-        DeviceAssignment.objects.create(
-            device=self.device,
-            patient=self.patient_profile,
-            doctor=self.doctor_profile,
-            tenant=self.tenant,
-            assigned_at=timezone.now(),
-            unassigned_at=None,
-        )
-
-        # Another brand (brand2) using the same serial_number
-        brand2_device = DeviceFactory(
-            tenant=self.tenant,
-            serial_number=self.device.serial_number,
-            brand="Brand-2",
-            name="Other Brand Device",
-        )
-        brand2_patient_user = PatientUserFactory(tenant=self.tenant)
-        brand2_patient_profile = PatientProfileFactory(
-            user=brand2_patient_user, name="Brand2 Patient"
-        )
-
-        DeviceAssignment.objects.create(
-            device=brand2_device,
-            patient=brand2_patient_profile,
-            doctor=self.doctor_profile,
-            tenant=self.tenant,
-            assigned_at=timezone.now(),
-            unassigned_at=None,
-        )
-
-        timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
-        measurement = IngestMeasurement().execute(
-            serial_number=self.device.serial_number,
-            brand=self.device.brand,
-            tenant=self.tenant,
-            timestamp=timestamp,
-            heart_rate=75.5,
-            hrv=42.3,
-        )
-
-        self.assertEqual(measurement.tenant, self.tenant)
-        self.assertEqual(measurement.patient, self.patient_profile)
+        self.assertEqual(measurement.measurement_session, measurement_session)
