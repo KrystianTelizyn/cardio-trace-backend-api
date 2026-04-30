@@ -20,6 +20,7 @@ Data reads are served by Hasura — see [GraphQL Specification](hasura-graphql-s
 |--------|-----------------------------------|--------------------|----------------------------------------------|
 | POST   | /users                            | internal           | Provision user + profile on first login      |
 | PATCH  | /me/profile                       | doctor, patient    | Update own profile (post-registration etc.)  |
+| POST   | /ingestion/enrich                 | internal           | Resolve device/session context for ingestion |
 | POST   | /measurements                     | internal           | Ingest measurement for resolved session      |
 | POST   | /measurement-sessions             | patient            | Start a measurement session                  |
 | PATCH  | /measurement-sessions/{id}        | patient            | Stop a measurement session                   |
@@ -129,6 +130,30 @@ Fields that do not belong to the user's role are silently ignored.
 ---
 
 ### Measurements
+
+#### POST /ingestion/enrich
+
+Resolve external device identity into ingestion-ready internal context in one call. This endpoint is intended for high-frequency internal telemetry pipelines before `POST /measurements`.
+
+**Access:** `internal`
+
+**Request body:**
+
+| Field         | Type   | Required | Description                                  |
+|---------------|--------|----------|----------------------------------------------|
+| serial_number | string | yes      | Device serial number                         |
+| brand         | string | yes      | Device brand                                 |
+
+**Response 200:**
+
+| Field      | Type        | Description                                                  |
+|------------|-------------|--------------------------------------------------------------|
+| device_uid | ulid-string | Stable internal device identifier                           |
+| session_uid| ulid-string | Active measurement session identifier, or `null` if missing |
+
+**Errors:** `400` — validation error, `404` — device identity not found
+
+---
 
 #### POST /measurements
 

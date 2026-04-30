@@ -62,6 +62,7 @@ Summary of endpoints:
 |--------|-----------------------------------|-----------------|------------------------------------------|
 | POST   | /users                            | internal        | Provision user + profile on first login  |
 | PATCH  | /me/profile                       | doctor, patient | Update own profile (post-registration)   |
+| POST   | /ingestion/enrich                 | internal        | Resolve device/session context upstream  |
 | POST   | /measurements                     | internal        | Ingest measurement for resolved session  |
 | POST   | /measurement-sessions             | patient         | Start a measurement session              |
 | PATCH  | /measurement-sessions/{id}        | patient         | Stop a measurement session               |
@@ -80,7 +81,7 @@ Summary of endpoints:
 |--------|---------------|----------------|
 | **SPA** (via gateway) | All `doctor`/`patient` endpoints | Gateway-forwarded headers ([ADR 0012](adr/0012-gateway-backend-trust-contract.md)) |
 | **Gateway** | `POST /users` | Internal network (Docker) |
-| **Sensor-hub** | `POST /measurements` | Internal network (Docker) |
+| **Sensor-hub** | `POST /ingestion/enrich`, `POST /measurements` | Internal network (Docker) |
 | **Workers** | `POST /alerts` | Internal network (Docker) |
 
 ## Implementation Notes
