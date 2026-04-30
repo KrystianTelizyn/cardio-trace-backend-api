@@ -148,7 +148,7 @@ Resolve external device identity into ingestion-ready internal context in one ca
 
 | Field      | Type        | Description                                                  |
 |------------|-------------|--------------------------------------------------------------|
-| device_uid | ulid-string | Stable internal device identifier                           |
+| device_uid | string      | Stable internal device identifier (8 chars, lowercase alphanumeric) |
 | session_uid| ulid-string | Active measurement session identifier, or `null` if missing |
 
 **Errors:** `400` — validation error, `404` — device identity not found
