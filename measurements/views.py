@@ -18,10 +18,15 @@ class MeasurementIngestView(APIView):
     def post(self, request: Request) -> Response:
         serializer = MeasurementIngestInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
 
         tenant = request.auth["tenant"]
         measurement = IngestMeasurement().execute(
-            tenant=tenant, **serializer.validated_data
+            measurement_session_id=validated_data["measurement_session_id"],
+            tenant=tenant,
+            timestamp=validated_data["timestamp"],
+            heart_rate=validated_data["heart_rate"],
+            hrv=validated_data["hrv"],
         )
         output = MeasurementIngestOutputSerializer(measurement)
         return Response(output.data, status=status.HTTP_201_CREATED)

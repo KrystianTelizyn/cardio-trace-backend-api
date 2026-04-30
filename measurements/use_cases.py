@@ -1,58 +1,40 @@
 from datetime import datetime
 
 from measurements.exceptions import (
-    DeviceBySerialNotFoundError,
-    DeviceHasNoActiveAssignmentError,
+    MeasurementDroppedSessionStopped,
+    MeasurementSessionNotFoundError,
 )
 from accounts.models import Tenant
-from measurements.models import Measurement
-from devices.models import Device, DeviceAssignment
+from measurements.models import Measurement, MeasurementSession
 
 
 class IngestMeasurement:
     def execute(
         self,
         *,
-        serial_number: str,
-        brand: str,
+        measurement_session_id: str,
         tenant: Tenant,
         timestamp: datetime,
         heart_rate: float,
         hrv: float,
     ) -> Measurement:
-        device = Device.objects.filter(
-            serial_number=serial_number,
-            brand=brand,
+        measurement_session = MeasurementSession.objects.filter(
+            id=measurement_session_id,
             tenant=tenant,
         ).first()
-        if not device:
-            raise DeviceBySerialNotFoundError(
-                serial_number=serial_number,
-                brand=brand,
+        if not measurement_session:
+            raise MeasurementSessionNotFoundError(
+                measurement_session_id=measurement_session_id,
                 tenant_id=tenant.id,
             )
-
-        assignment = (
-            DeviceAssignment.objects.filter(
-                device=device,
-                tenant=tenant,
-                unassigned_at__isnull=True,
-            )
-            .select_related("patient", "tenant")
-            .order_by("-created_at")
-            .first()
-        )
-        if not assignment:
-            raise DeviceHasNoActiveAssignmentError(
-                serial_number=serial_number,
-                brand=brand,
-                tenant_id=tenant.id,
+        if not measurement_session.is_active:
+            raise MeasurementDroppedSessionStopped(
+                measurement_session_id=measurement_session_id
             )
 
         return Measurement.objects.create(
-            device=device,
-            patient=assignment.patient,
             tenant=tenant,
+            measurement_session=measurement_session,
             timestamp=timestamp,
             heart_rate=heart_rate,
             hrv=hrv,
