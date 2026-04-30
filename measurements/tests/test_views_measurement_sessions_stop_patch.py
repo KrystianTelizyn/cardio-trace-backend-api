@@ -2,6 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from django.test import TestCase
+from django.utils.dateparse import parse_datetime
 from rest_framework import status
 
 from tests.mixins import (
@@ -45,6 +46,24 @@ class MeasurementSessionStopViewTests(
         self.assertEqual(data["started_at"], "2026-01-10T11:00:00Z")
         self.assertEqual(data["stopped_at"], "2026-01-10T12:00:00Z")
         self.assertEqual(data["status"], "stopped")
+
+    def test_stops_measurement_session_when_stopped_at_missing(self) -> None:
+        response = self.client.patch(
+            f"/measurement-sessions/{self.active_session.id}",
+            data={},
+            headers=self.headers_for(self.patient_user),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], self.active_session.id)
+        self.assertEqual(data["status"], "stopped")
+        self.assertIsNotNone(data["stopped_at"])
+
+        parsed_stopped_at = parse_datetime(data["stopped_at"])
+        self.assertIsNotNone(parsed_stopped_at)
+        self.assertGreater(parsed_stopped_at, self.active_session.started_at)
 
     def test_returns_200_for_already_stopped_session(self) -> None:
         self.client.patch(

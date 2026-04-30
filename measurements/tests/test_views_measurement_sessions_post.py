@@ -50,6 +50,26 @@ class MeasurementSessionStartViewTests(
         self.assertEqual(session.tenant, self.tenant)
         self.assertEqual(session.device_assignment, self.assignment)
 
+    def test_starts_measurement_session_when_started_at_missing(self) -> None:
+        response = self.client.post(
+            "/measurement-sessions",
+            data={"device_assignment_id": self.assignment.id},
+            headers=self.headers_for(self.patient_user),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertIn("id", data)
+        self.assertIsNotNone(data["started_at"])
+        self.assertEqual(data["status"], "active")
+
+        session = MeasurementSession.objects.get(id=data["id"])
+        self.assertEqual(session.tenant, self.tenant)
+        self.assertEqual(session.device_assignment, self.assignment)
+        self.assertIsNotNone(session.started_at)
+        self.assertIsNone(session.stopped_at)
+
     def test_returns_400_for_invalid_payload(self) -> None:
         response = self.client.post(
             "/measurement-sessions",
