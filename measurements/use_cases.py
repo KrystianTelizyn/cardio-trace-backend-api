@@ -3,6 +3,8 @@ from django.utils import timezone
 
 from accounts.models import Tenant
 from devices.models import DeviceAssignment
+from devices.exceptions import DeviceIdentityNotFoundError
+from devices.models import Device
 from measurements.exceptions import (
     ActiveMeasurementSessionAlreadyExistsError,
     MeasurementDroppedSessionStopped,
@@ -45,6 +47,35 @@ class IngestMeasurement:
             heart_rate=heart_rate,
             hrv=hrv,
         )
+
+
+class EnrichIngestionContext:
+    def execute(
+        self,
+        *,
+        tenant: Tenant,
+        serial_number: str,
+        brand: str,
+    ) -> tuple[str, str | None]:
+        device = Device.objects.filter(
+            tenant=tenant,
+            serial_number=serial_number,
+            brand=brand,
+        ).first()
+        if not device:
+            raise DeviceIdentityNotFoundError(
+                tenant_id=tenant.id,
+                serial_number=serial_number,
+                brand=brand,
+            )
+
+        active_session = MeasurementSession.objects.filter(
+            tenant=tenant,
+            device_assignment__device=device,
+            stopped_at__isnull=True,
+        ).first()
+        session_uid = active_session.id if active_session else None
+        return device.uid, session_uid
 
 
 class StartMeasurementSession:

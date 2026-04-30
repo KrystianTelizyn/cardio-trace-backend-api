@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 
 from config.authentication import GatewayAuthentication, InternalTenantAuthentication
 from measurements.serializers import (
+    IngestionEnrichInputSerializer,
+    IngestionEnrichOutputSerializer,
     MeasurementIngestInputSerializer,
     MeasurementIngestOutputSerializer,
     MeasurementSessionStopInputSerializer,
@@ -13,6 +15,7 @@ from measurements.serializers import (
     MeasurementSessionStartInputSerializer,
 )
 from measurements.use_cases import (
+    EnrichIngestionContext,
     IngestMeasurement,
     StartMeasurementSession,
     StopMeasurementSession,
@@ -38,6 +41,27 @@ class MeasurementIngestView(APIView):
         )
         output = MeasurementIngestOutputSerializer(measurement)
         return Response(output.data, status=status.HTTP_201_CREATED)
+
+
+class IngestionEnrichView(APIView):
+    authentication_classes = [InternalTenantAuthentication]
+    permission_classes = []
+
+    def post(self, request: Request) -> Response:
+        serializer = IngestionEnrichInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        device_uid, session_uid = EnrichIngestionContext().execute(
+            tenant=request.auth["tenant"],
+            serial_number=validated_data["serial_number"],
+            brand=validated_data["brand"],
+        )
+
+        output = IngestionEnrichOutputSerializer(
+            {"device_uid": device_uid, "session_uid": session_uid}
+        )
+        return Response(output.data, status=status.HTTP_200_OK)
 
 
 class MeasurementSessionStartView(APIView):
