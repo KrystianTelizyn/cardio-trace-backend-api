@@ -17,21 +17,6 @@ class MeasurementSessionNotFoundError(DomainException):
         )
 
 
-class MeasurementSessionNotActiveError(DomainException):
-    code: str = "measurement_session_not_active"
-    message_template: str = (
-        "Measurement session {measurement_session_id} is not active "
-        "or timestamp is outside valid window for tenant {tenant_id}"
-    )
-    status_code: int = status.HTTP_409_CONFLICT
-
-    def __init__(self, *, measurement_session_id: str, tenant_id: int) -> None:
-        super().__init__(
-            measurement_session_id=measurement_session_id,
-            tenant_id=tenant_id,
-        )
-
-
 class MeasurementDroppedSessionStopped(DomainException):
     code: str = "measurement_dropped_session_stopped"
     message_template: str = (
@@ -78,22 +63,14 @@ class MeasurementSessionStartOutsideAssignmentWindowError(DomainException):
 
 class ActiveMeasurementSessionAlreadyExistsError(DomainException):
     code: str = "active_measurement_session_already_exists"
-    message_template: str = "Active measurement session already exists for assignment {device_assignment_id}"
+    message_template: str = (
+        "Active measurement session already exists for assignment "
+        "{device_assignment_id}"
+    )
     status_code: int = status.HTTP_409_CONFLICT
 
     def __init__(self, *, device_assignment_id: int) -> None:
         super().__init__(device_assignment_id=device_assignment_id)
-
-
-class MeasurementSessionAlreadyStoppedError(DomainException):
-    code: str = "measurement_session_already_stopped"
-    message_template: str = (
-        "Measurement session {measurement_session_id} is already stopped"
-    )
-    status_code: int = status.HTTP_409_CONFLICT
-
-    def __init__(self, *, measurement_session_id: str) -> None:
-        super().__init__(measurement_session_id=measurement_session_id)
 
 
 class MeasurementSessionInvalidStopTimeError(DomainException):
@@ -109,15 +86,3 @@ class MeasurementSessionInvalidStopTimeError(DomainException):
             measurement_session_id=measurement_session_id,
             stopped_at=stopped_at,
         )
-
-
-class MeasurementSessionAssignmentNotActiveError(DomainException):
-    code: str = "measurement_session_assignment_not_active"
-    message_template: str = (
-        "Underlying assignment is not active for measurement session "
-        "{measurement_session_id}"
-    )
-    status_code: int = status.HTTP_400_BAD_REQUEST
-
-    def __init__(self, *, measurement_session_id: str) -> None:
-        super().__init__(measurement_session_id=measurement_session_id)
