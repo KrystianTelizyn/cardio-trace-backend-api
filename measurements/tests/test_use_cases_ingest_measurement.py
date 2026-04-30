@@ -2,6 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from django.test import TestCase
+from django.utils import timezone
 
 from devices.models import DeviceAssignment
 from measurements.exceptions import (
@@ -27,6 +28,8 @@ class IngestMeasurementUseCaseTests(
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
         timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
@@ -75,6 +78,8 @@ class IngestMeasurementUseCaseTests(
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
         # Another tenant with a device using the same serial number
@@ -93,6 +98,8 @@ class IngestMeasurementUseCaseTests(
             patient=self.other_patient_profile,
             doctor=other_doctor_profile,
             tenant=self.other_tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
         timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
@@ -120,6 +127,8 @@ class IngestMeasurementUseCaseTests(
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
         # Another brand (brand2) using the same serial_number
@@ -139,6 +148,8 @@ class IngestMeasurementUseCaseTests(
             patient=brand2_patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
         timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))

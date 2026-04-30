@@ -8,11 +8,12 @@ from devices.serializers import (
     DeviceCreateOutputSerializer,
     DeviceAssignmentInputSerializer,
     DeviceAssignmentOutputSerializer,
+    DeviceAssignmentStopInputSerializer,
 )
 from devices.use_cases import (
     CreateDevice,
     AssignDevice,
-    DeleteDeviceAssignment,
+    StopDeviceAssignment,
 )
 from config.authentication import GatewayAuthentication
 
@@ -52,11 +53,18 @@ class AssignDeviceView(APIView):
         )
 
 
-class DeviceAssignmentDeleteView(APIView):
+class DeviceAssignmentStopView(APIView):
     authentication_classes = [GatewayAuthentication]
     permission_classes = []
 
-    def delete(self, request: Request, assignment_id: int) -> Response:
-        use_case = DeleteDeviceAssignment()
-        use_case.execute(assignment_id=assignment_id, tenant=request.user.tenant)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def patch(self, request: Request, assignment_id: int) -> Response:
+        serializer = DeviceAssignmentStopInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        use_case = StopDeviceAssignment()
+        assignment = use_case.execute(
+            assignment_id=assignment_id,
+            tenant=request.user.tenant,
+            unassigned_at=serializer.validated_data.get("unassigned_at"),
+        )
+        return Response(DeviceAssignmentOutputSerializer(assignment).data)

@@ -29,15 +29,35 @@ class PatientProfileNotFoundError(DomainException):
         super().__init__(patient_profile_id=patient_profile_id)
 
 
-class DeviceAssignmentAlreadyExistsError(DomainException):
-    code: str = "device_assignment_already_exists"
-    message_template: str = (
-        "Device {device_id} already has an active assignment in this tenant"
-    )
-    status_code: int = status.HTTP_400_BAD_REQUEST
+class DeviceAlreadyActivelyAssignedError(DomainException):
+    code: str = "device_already_actively_assigned"
+    message_template: str = "Device {device_id} already has an active assignment"
+    status_code: int = status.HTTP_409_CONFLICT
 
-    def __init__(self, device_id: int, patient_profile_id: int) -> None:
-        super().__init__(device_id=device_id, patient_profile_id=patient_profile_id)
+    def __init__(self, device_id: int) -> None:
+        super().__init__(device_id=device_id)
+
+
+class PatientAlreadyHasActiveDeviceAssignmentError(DomainException):
+    code: str = "patient_already_has_active_device_assignment"
+    message_template: str = (
+        "Patient profile {patient_profile_id} already has an active device assignment"
+    )
+    status_code: int = status.HTTP_409_CONFLICT
+
+    def __init__(self, patient_profile_id: int) -> None:
+        super().__init__(patient_profile_id=patient_profile_id)
+
+
+class DeviceAssignmentAlreadyStoppedError(DomainException):
+    code: str = "device_assignment_already_stopped"
+    message_template: str = (
+        "Device assignment with id {assignment_id} is already stopped"
+    )
+    status_code: int = status.HTTP_409_CONFLICT
+
+    def __init__(self, assignment_id: int) -> None:
+        super().__init__(assignment_id=assignment_id)
 
 
 class DeviceAssignmentNotFoundError(DomainException):

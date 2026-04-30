@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework import status
 
 from devices.models import DeviceAssignment
@@ -19,6 +20,8 @@ class MeasurementIngestViewTests(
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
         self.valid_payload = {
             "serial_number": self.device.serial_number,

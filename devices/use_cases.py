@@ -1,13 +1,18 @@
+from datetime import datetime
+
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.utils import timezone
 
 from devices.models import Device, DeviceAssignment
 from accounts.models import Tenant, PatientProfile, DoctorProfile
 from devices.exceptions import (
-    DeviceAssignmentAlreadyExistsError,
+    DeviceAlreadyActivelyAssignedError,
     DeviceAlreadyExistsError,
     DeviceNotFoundError,
+    DeviceAssignmentAlreadyStoppedError,
     DeviceAssignmentNotFoundError,
+    PatientAlreadyHasActiveDeviceAssignmentError,
     PatientProfileNotFoundError,
 )
 
@@ -50,23 +55,38 @@ class AssignDevice:
         if not patient_profile:
             raise PatientProfileNotFoundError(patient_profile_id)
 
-        try:
-            with transaction.atomic():
-                return DeviceAssignment.objects.create(
-                    device=device,
-                    patient=patient_profile,
-                    doctor=doctor_profile,
-                    tenant=tenant,
+        with transaction.atomic():
+            now = timezone.now()
+            active_assignments = DeviceAssignment.objects.filter(
+                tenant=tenant,
+                unassigned_at__isnull=True,
+            )
+            if active_assignments.filter(device=device).exists():
+                raise DeviceAlreadyActivelyAssignedError(device_id=device_id)
+
+            if active_assignments.filter(patient=patient_profile).exists():
+                raise PatientAlreadyHasActiveDeviceAssignmentError(
+                    patient_profile_id=patient_profile_id
                 )
-        except IntegrityError as exc:
-            # Covers concurrent duplicate assignments for the unique constraint.
-            raise DeviceAssignmentAlreadyExistsError(
-                device_id=device_id, patient_profile_id=patient_profile_id
-            ) from exc
+
+            return DeviceAssignment.objects.create(
+                device=device,
+                patient=patient_profile,
+                doctor=doctor_profile,
+                tenant=tenant,
+                assigned_at=now,
+                unassigned_at=None,
+            )
 
 
-class DeleteDeviceAssignment:
-    def execute(self, *, assignment_id: int, tenant: Tenant) -> None:
+class StopDeviceAssignment:
+    def execute(
+        self,
+        *,
+        assignment_id: int,
+        tenant: Tenant,
+        unassigned_at: datetime | None = None,
+    ) -> DeviceAssignment:
         assignment = DeviceAssignment.objects.filter(
             id=assignment_id,
             tenant=tenant,
@@ -74,4 +94,13 @@ class DeleteDeviceAssignment:
         if not assignment:
             raise DeviceAssignmentNotFoundError(assignment_id)
 
-        assignment.delete()
+        if assignment.unassigned_at is not None:
+            raise DeviceAssignmentAlreadyStoppedError(assignment_id)
+
+        stopped_at = unassigned_at or timezone.now()
+        if stopped_at <= assignment.assigned_at:
+            stopped_at = timezone.now()
+
+        assignment.unassigned_at = stopped_at
+        assignment.save(update_fields=["unassigned_at", "updated_at"])
+        return assignment
