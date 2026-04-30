@@ -40,13 +40,36 @@ class DeviceAssignment(models.Model):
     doctor = models.ForeignKey(
         DoctorProfile, on_delete=models.CASCADE, related_name="device_assignments"
     )
+    assigned_at = models.DateTimeField()
+    unassigned_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["device", "tenant"],
-                name="unique_active_device_assignment_per_tenant",
+                fields=["tenant", "patient"],
+                condition=models.Q(unassigned_at__isnull=True),
+                name="uniq_active_assign_per_patient",
+            ),
+            models.UniqueConstraint(
+                fields=["tenant", "device"],
+                condition=models.Q(unassigned_at__isnull=True),
+                name="uniq_active_assign_per_device",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(unassigned_at__isnull=True)
+                | models.Q(unassigned_at__gt=models.F("assigned_at")),
+                name="device_assignment_unassigned_after_assigned",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["tenant", "device", "assigned_at"],
+                name="dev_assign_device_hist_idx",
+            ),
+            models.Index(
+                fields=["tenant", "patient", "assigned_at"],
+                name="dev_assign_patient_hist_idx",
             ),
         ]

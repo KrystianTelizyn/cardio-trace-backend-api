@@ -2,7 +2,7 @@ from django.urls import path
 
 from devices.views import (
     AssignDeviceView,
-    DeviceAssignmentDeleteView,
+    DeviceAssignmentStopView,
     DeviceCreateView,
 )
 
@@ -15,7 +15,7 @@ urlpatterns = [
     ),
     path(
         "device-assignments/<int:assignment_id>",
-        DeviceAssignmentDeleteView.as_view(),
-        name="device-assignment-delete",
+        DeviceAssignmentStopView.as_view(),
+        name="device-assignment-stop",
     ),
 ]

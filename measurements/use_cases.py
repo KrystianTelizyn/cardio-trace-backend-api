@@ -33,7 +33,11 @@ class IngestMeasurement:
             )
 
         assignment = (
-            DeviceAssignment.objects.filter(device=device, tenant=tenant)
+            DeviceAssignment.objects.filter(
+                device=device,
+                tenant=tenant,
+                unassigned_at__isnull=True,
+            )
             .select_related("patient", "tenant")
             .order_by("-created_at")
             .first()

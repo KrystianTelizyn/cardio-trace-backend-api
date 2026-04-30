@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework import status
 
 from devices.models import DeviceAssignment
@@ -11,7 +12,7 @@ from tests.mixins import (
 )
 
 
-class DeleteDeviceAssignmentViewTests(
+class StopDeviceAssignmentViewTests(
     ApiClientMixin,
     GatewayAuthMixin,
     TenantUsersMixin,
@@ -19,20 +20,23 @@ class DeleteDeviceAssignmentViewTests(
     DevicesFixtureMixin,
     TestCase,
 ):
-    def test_deletes_device_assignment_204(self) -> None:
+    def test_stops_device_assignment_200(self) -> None:
         assignment = DeviceAssignment.objects.create(
             device=self.device,
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
-        response = self.client.delete(
+        response = self.client.patch(
             f"/device-assignments/{assignment.id}",
             headers=self.headers_for(self.doctor_user),
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(DeviceAssignment.objects.filter(id=assignment.id).exists())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assignment.refresh_from_db()
+        self.assertIsNotNone(assignment.unassigned_at)
 
     def test_returns_404_for_assignment_in_other_tenant(self) -> None:
         assignment = DeviceAssignment.objects.create(
@@ -40,9 +44,11 @@ class DeleteDeviceAssignmentViewTests(
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
-        response = self.client.delete(
+        response = self.client.patch(
             f"/device-assignments/{assignment.id}",
             headers=self.headers_for(self.other_doctor_user),
         )
@@ -51,23 +57,26 @@ class DeleteDeviceAssignmentViewTests(
             response.json()["error"]["code"],
             "device_assignment_not_found",
         )
-        self.assertTrue(DeviceAssignment.objects.filter(id=assignment.id).exists())
+        assignment.refresh_from_db()
+        self.assertIsNone(assignment.unassigned_at)
 
-    def test_after_delete_device_can_be_assigned_again(self) -> None:
+    def test_after_stop_device_can_be_assigned_again(self) -> None:
         assignment = DeviceAssignment.objects.create(
             device=self.device,
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
 
-        delete_response = self.client.delete(
+        stop_response = self.client.patch(
             f"/device-assignments/{assignment.id}",
             headers=self.headers_for(self.doctor_user),
         )
-        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(stop_response.status_code, status.HTTP_200_OK)
 
-        # Re-assign should succeed now that the previous assignment row is gone.
+        # Re-assign should succeed now that the previous assignment is stopped.
         assign_response = self.client.post(
             "/device-assignments",
             data={
@@ -79,12 +88,33 @@ class DeleteDeviceAssignmentViewTests(
         )
         self.assertEqual(assign_response.status_code, status.HTTP_201_CREATED)
 
+    def test_returns_409_for_already_stopped_assignment(self) -> None:
+        assignment = DeviceAssignment.objects.create(
+            device=self.device,
+            patient=self.patient_profile,
+            doctor=self.doctor_profile,
+            tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=timezone.now(),
+        )
+        response = self.client.patch(
+            f"/device-assignments/{assignment.id}",
+            headers=self.headers_for(self.doctor_user),
+        )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(
+            response.json()["error"]["code"],
+            "device_assignment_already_stopped",
+        )
+
     def test_returns_401_for_unauthenticated_request(self) -> None:
         assignment = DeviceAssignment.objects.create(
             device=self.device,
             patient=self.patient_profile,
             doctor=self.doctor_profile,
             tenant=self.tenant,
+            assigned_at=timezone.now(),
+            unassigned_at=None,
         )
-        response = self.client.delete(f"/device-assignments/{assignment.id}")
+        response = self.client.patch(f"/device-assignments/{assignment.id}")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework import status
 
-from devices.models import DeviceAssignment
+from devices.models import Device, DeviceAssignment
 from tests.mixins import (
     ApiClientMixin,
     DevicesFixtureMixin,
@@ -40,6 +40,8 @@ class AssignDeviceViewTests(
         self.assertEqual(assignment.patient_id, self.patient_profile.id)
         self.assertEqual(assignment.doctor_id, self.doctor_profile.id)
         self.assertEqual(assignment.tenant_id, self.tenant.id)
+        self.assertIn("assigned_at", response.json())
+        self.assertIsNone(response.json()["unassigned_at"])
 
     def test_returns_401_for_unauthenticated_request(self) -> None:
         response = self.client.post(
@@ -97,7 +99,7 @@ class AssignDeviceViewTests(
             "patient_profile_not_found",
         )
 
-    def test_returns_400_for_duplicate_assignment(self) -> None:
+    def test_returns_409_for_active_device_assignment(self) -> None:
         request_data = {
             "device_id": self.device.id,
             "patient_profile_id": self.patient_profile.id,
@@ -117,26 +119,74 @@ class AssignDeviceViewTests(
             headers=self.headers_for(self.doctor_user),
             format="json",
         )
-        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(second_response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(
             second_response.json()["error"]["code"],
-            "device_assignment_already_exists",
+            "device_already_actively_assigned",
         )
 
-        other_patient_user = PatientUserFactory(tenant=self.tenant)
-        other_patient_profile = PatientProfileFactory(user=other_patient_user)
-        other_request_data = {
+    def test_returns_409_for_patient_with_active_assignment(self) -> None:
+        request_data = {
             "device_id": self.device.id,
-            "patient_profile_id": other_patient_profile.id,
+            "patient_profile_id": self.patient_profile.id,
         }
-        third_response = self.client.post(
+        first_response = self.client.post(
             "/device-assignments",
-            data=other_request_data,
+            data=request_data,
             headers=self.headers_for(self.doctor_user),
             format="json",
         )
-        self.assertEqual(third_response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            third_response.json()["error"]["code"],
-            "device_assignment_already_exists",
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        other_device = Device.objects.create(
+            serial_number="SN-SECOND-001",
+            brand="Brand2",
+            name="Device 2",
+            tenant=self.tenant,
         )
+        second_response = self.client.post(
+            "/device-assignments",
+            data={
+                "device_id": other_device.id,
+                "patient_profile_id": self.patient_profile.id,
+            },
+            headers=self.headers_for(self.doctor_user),
+            format="json",
+        )
+        self.assertEqual(second_response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(
+            second_response.json()["error"]["code"],
+            "patient_already_has_active_device_assignment",
+        )
+
+    def test_allows_reassignment_after_previous_assignment_is_stopped(self) -> None:
+        request_data = {
+            "device_id": self.device.id,
+            "patient_profile_id": self.patient_profile.id,
+        }
+        first_response = self.client.post(
+            "/device-assignments",
+            data=request_data,
+            headers=self.headers_for(self.doctor_user),
+            format="json",
+        )
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        stop_response = self.client.patch(
+            f"/device-assignments/{first_response.json()['id']}",
+            headers=self.headers_for(self.doctor_user),
+        )
+        self.assertEqual(stop_response.status_code, status.HTTP_200_OK)
+
+        other_patient_user = PatientUserFactory(tenant=self.tenant)
+        other_patient_profile = PatientProfileFactory(user=other_patient_user)
+        response = self.client.post(
+            "/device-assignments",
+            data={
+                "device_id": self.device.id,
+                "patient_profile_id": other_patient_profile.id,
+            },
+            headers=self.headers_for(self.doctor_user),
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
