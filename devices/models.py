@@ -1,9 +1,17 @@
 from django.db import models
+import secrets
+import string
 
 from accounts.models import PatientProfile, Tenant, DoctorProfile
 
 
+def generate_device_uid() -> str:
+    alphabet = string.ascii_lowercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(8))
+
+
 class Device(models.Model):
+    uid = models.CharField(max_length=8, unique=True, default=generate_device_uid)
     serial_number = models.CharField(max_length=255)
     brand = models.CharField(max_length=255)
     name = models.CharField(max_length=255)

@@ -67,6 +67,8 @@ The API will be available at `http://localhost:8000`.
 ```
 config/          # Django settings, root URL conf, WSGI
 accounts/        # Users, tenants, profiles
+devices/         # Device registry and assignment lifecycle
+measurements/    # Measurement sessions and measurement ingestion writes
 docs/            # Architecture overview, API spec, ADRs
 ```
 
@@ -75,6 +77,8 @@ docs/            # Architecture overview, API spec, ADRs
 This service is the **write side** of a read/write split — it handles all mutations through DRF endpoints while [Hasura](https://hasura.io/) serves reads via GraphQL over the same PostgreSQL database.
 
 Authentication is handled externally by the gateway, which forwards trusted headers (`X-User-Id`, `X-Tenant-Id`, `X-Roles`). Internal callers (sensor-hub, workers) are trusted by network origin.
+
+The measurements domain is session-based: patients start/stop `MeasurementSession` records, and ingestion writes `Measurement` frames against an active session identifier. Late frames for stopped sessions are accepted and dropped by design.
 
 See `docs/backend-api-overview.md` for full details.
 

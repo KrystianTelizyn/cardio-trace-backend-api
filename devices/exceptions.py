@@ -67,3 +67,16 @@ class DeviceAssignmentNotFoundError(DomainException):
 
     def __init__(self, assignment_id: int) -> None:
         super().__init__(assignment_id=assignment_id)
+
+
+class DeviceIdentityNotFoundError(DomainException):
+    code: str = "device_identity_not_found"
+    message_template: str = "Device not found for tenant {tenant_id}, serial_number {serial_number}, brand {brand}"
+    status_code: int = status.HTTP_404_NOT_FOUND
+
+    def __init__(self, *, tenant_id: int, serial_number: str, brand: str) -> None:
+        super().__init__(
+            tenant_id=tenant_id,
+            serial_number=serial_number,
+            brand=brand,
+        )

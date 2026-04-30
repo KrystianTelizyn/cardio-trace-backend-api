@@ -16,6 +16,16 @@ class MeasurementIngestOutputSerializer(serializers.Serializer):
     hrv = serializers.FloatField(read_only=True)
 
 
+class IngestionEnrichInputSerializer(serializers.Serializer):
+    serial_number = serializers.CharField(required=True)
+    brand = serializers.CharField(required=True)
+
+
+class IngestionEnrichOutputSerializer(serializers.Serializer):
+    device_uid = serializers.CharField(read_only=True)
+    session_uid = serializers.CharField(read_only=True, allow_null=True)
+
+
 class MeasurementSessionStartInputSerializer(serializers.Serializer):
     device_assignment_id = serializers.IntegerField(required=True)
     started_at = serializers.DateTimeField(required=False)

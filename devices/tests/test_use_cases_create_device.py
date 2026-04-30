@@ -31,6 +31,7 @@ class CreateDeviceUseCaseTests(TenantUsersMixin, TestCase):
         self.assertEqual(device.brand, "Apple")
         self.assertEqual(device.name, "Watch")
         self.assertEqual(device.tenant, self.tenant)
+        self.assertEqual(len(device.uid), 8)
 
     def test_raises_exception_on_duplicate(self) -> None:
         with self.assertRaises(DeviceAlreadyExistsError):
