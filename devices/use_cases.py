@@ -102,5 +102,5 @@ class StopDeviceAssignment:
             stopped_at = timezone.now()
 
         assignment.unassigned_at = stopped_at
-        assignment.save(update_fields=["unassigned_at", "updated_at"])
+        assignment.save(update_fields=["unassigned_at"])
         return assignment

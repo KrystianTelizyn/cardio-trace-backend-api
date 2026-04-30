@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-from rest_framework.test import APIClient
+from datetime import datetime
 
-from accounts.models import User
+from rest_framework.test import APIClient
+from django.utils import timezone
+
+from accounts.models import DoctorProfile, PatientProfile, Tenant, User
+from devices.models import Device, DeviceAssignment
+from measurements.models import MeasurementSession
 from tests.auth import gateway_headers
 from tests.factories import (
     DeviceFactory,
@@ -101,3 +106,38 @@ class DevicesFixtureMixin:
     def setUpTestData(cls) -> None:
         cls.device = DeviceFactory(tenant=cls.tenant)
         super().setUpTestData()
+
+
+class MeasurementFixturesMixin:
+    def create_active_assignment(
+        self,
+        *,
+        assigned_at: datetime | None = None,
+        device: Device | None = None,
+        patient: PatientProfile | None = None,
+        doctor: DoctorProfile | None = None,
+        tenant: Tenant | None = None,
+    ) -> DeviceAssignment:
+        return DeviceAssignment.objects.create(
+            device=device or self.device,
+            patient=patient or self.patient_profile,
+            doctor=doctor or self.doctor_profile,
+            tenant=tenant or self.tenant,
+            assigned_at=assigned_at or timezone.now(),
+            unassigned_at=None,
+        )
+
+    def create_measurement_session(
+        self,
+        *,
+        device_assignment: DeviceAssignment,
+        started_at: datetime | None = None,
+        stopped_at: datetime | None = None,
+        tenant: Tenant | None = None,
+    ) -> MeasurementSession:
+        return MeasurementSession.objects.create(
+            tenant=tenant or self.tenant,
+            device_assignment=device_assignment,
+            started_at=started_at or timezone.now(),
+            stopped_at=stopped_at,
+        )
