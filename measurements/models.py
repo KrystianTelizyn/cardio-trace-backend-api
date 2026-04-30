@@ -1,8 +1,10 @@
+import uuid
+
+import ulid
 from django.db import models
 
-from accounts.models import PatientProfile, Tenant
-from devices.models import Device, DeviceAssignment
-import ulid
+from accounts.models import Tenant
+from devices.models import DeviceAssignment
 
 
 def generate_ulid_str() -> str:
@@ -36,18 +38,18 @@ class MeasurementSession(models.Model):
             models.UniqueConstraint(
                 fields=["tenant", "device_assignment"],
                 condition=models.Q(stopped_at__isnull=True),
-                name="uniq_active_session_per_assignment",
+                name="uniq_active_session_per_assign",
             ),
             models.CheckConstraint(
                 condition=models.Q(stopped_at__isnull=True)
                 | models.Q(stopped_at__gt=models.F("started_at")),
-                name="measurement_session_stopped_after_started",
+                name="ms_stopped_after_started",
             ),
         ]
         indexes = [
             models.Index(
                 fields=["tenant", "device_assignment", "started_at"],
-                name="measurement_session_assignment_idx",
+                name="ms_assignment_hist_idx",
             ),
         ]
 
@@ -61,18 +63,14 @@ class MeasurementSession(models.Model):
 
 
 class Measurement(models.Model):
-    device = models.ForeignKey(
-        Device,
-        on_delete=models.CASCADE,
-        related_name="measurements",
-    )
-    patient = models.ForeignKey(
-        PatientProfile,
-        on_delete=models.CASCADE,
-        related_name="measurements",
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(
         Tenant,
+        on_delete=models.CASCADE,
+        related_name="measurements",
+    )
+    measurement_session = models.ForeignKey(
+        MeasurementSession,
         on_delete=models.CASCADE,
         related_name="measurements",
     )

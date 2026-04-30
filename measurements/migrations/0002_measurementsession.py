@@ -51,14 +51,14 @@ class Migration(migrations.Migration):
                 "indexes": [
                     models.Index(
                         fields=["tenant", "device_assignment", "started_at"],
-                        name="measurement_session_assignment_idx",
+                        name="ms_assignment_hist_idx",
                     )
                 ],
                 "constraints": [
                     models.UniqueConstraint(
                         condition=models.Q(("stopped_at__isnull", True)),
                         fields=("tenant", "device_assignment"),
-                        name="uniq_active_session_per_assignment",
+                        name="uniq_active_session_per_assign",
                     ),
                     models.CheckConstraint(
                         condition=models.Q(
@@ -66,7 +66,7 @@ class Migration(migrations.Migration):
                             ("stopped_at__gt", models.F("started_at")),
                             _connector="OR",
                         ),
-                        name="measurement_session_stopped_after_started",
+                        name="ms_stopped_after_started",
                     ),
                 ],
             },
