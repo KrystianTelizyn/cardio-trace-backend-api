@@ -9,6 +9,7 @@ dependencies = [
     "djangorestframework",
     "psycopg[binary]",
     "python-dotenv",
+    "ulid-py>=1.1.0",
 ]
 
 [project.optional-dependencies]
