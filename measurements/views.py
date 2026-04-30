@@ -3,12 +3,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from config.authentication import GatewayAuthentication, InternalTenantAuthentication
 from measurements.serializers import (
     MeasurementIngestInputSerializer,
     MeasurementIngestOutputSerializer,
+    MeasurementSessionStartOutputSerializer,
+    MeasurementSessionStartInputSerializer,
 )
-from measurements.use_cases import IngestMeasurement
-from config.authentication import InternalTenantAuthentication
+from measurements.use_cases import IngestMeasurement, StartMeasurementSession
 
 
 class MeasurementIngestView(APIView):
@@ -29,4 +31,21 @@ class MeasurementIngestView(APIView):
             hrv=validated_data["hrv"],
         )
         output = MeasurementIngestOutputSerializer(measurement)
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
+
+class MeasurementSessionStartView(APIView):
+    authentication_classes = [GatewayAuthentication]
+    permission_classes = []
+
+    def post(self, request: Request) -> Response:
+        serializer = MeasurementSessionStartInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        measurement_session = StartMeasurementSession().execute(
+            device_assignment_id=serializer.validated_data["device_assignment_id"],
+            tenant=request.user.tenant,
+            started_at=serializer.validated_data.get("started_at"),
+        )
+        output = MeasurementSessionStartOutputSerializer(measurement_session)
         return Response(output.data, status=status.HTTP_201_CREATED)

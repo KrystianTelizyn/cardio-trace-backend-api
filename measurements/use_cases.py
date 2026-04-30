@@ -1,10 +1,15 @@
 from datetime import datetime
+from django.utils import timezone
 
-from measurements.exceptions import (
-    MeasurementDroppedSessionStopped,
-    MeasurementSessionNotFoundError,
-)
 from accounts.models import Tenant
+from devices.models import DeviceAssignment
+from measurements.exceptions import (
+    ActiveMeasurementSessionAlreadyExistsError,
+    MeasurementDroppedSessionStopped,
+    MeasurementSessionAssignmentNotFoundError,
+    MeasurementSessionNotFoundError,
+    MeasurementSessionStartOutsideAssignmentWindowError,
+)
 from measurements.models import Measurement, MeasurementSession
 
 
@@ -38,4 +43,48 @@ class IngestMeasurement:
             timestamp=timestamp,
             heart_rate=heart_rate,
             hrv=hrv,
+        )
+
+
+class StartMeasurementSession:
+    def execute(
+        self,
+        *,
+        device_assignment_id: int,
+        tenant: Tenant,
+        started_at: datetime | None = None,
+    ) -> MeasurementSession:
+        effective_started_at = started_at or timezone.now()
+
+        assignment = DeviceAssignment.objects.filter(
+            id=device_assignment_id,
+            tenant=tenant,
+            unassigned_at__isnull=True,
+        ).first()
+        if not assignment:
+            raise MeasurementSessionAssignmentNotFoundError(
+                device_assignment_id=device_assignment_id,
+                tenant_id=tenant.id,
+            )
+
+        if effective_started_at < assignment.assigned_at:
+            raise MeasurementSessionStartOutsideAssignmentWindowError(
+                started_at=effective_started_at.isoformat(),
+                device_assignment_id=device_assignment_id,
+            )
+
+        has_active_session = MeasurementSession.objects.filter(
+            tenant=tenant,
+            device_assignment=assignment,
+            stopped_at__isnull=True,
+        ).exists()
+        if has_active_session:
+            raise ActiveMeasurementSessionAlreadyExistsError(
+                device_assignment_id=device_assignment_id
+            )
+
+        return MeasurementSession.objects.create(
+            tenant=tenant,
+            device_assignment=assignment,
+            started_at=effective_started_at,
         )

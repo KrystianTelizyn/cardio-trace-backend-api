@@ -14,3 +14,30 @@ class MeasurementIngestOutputSerializer(serializers.Serializer):
     timestamp = serializers.DateTimeField(read_only=True)
     heart_rate = serializers.FloatField(read_only=True)
     hrv = serializers.FloatField(read_only=True)
+
+
+class MeasurementSessionStartInputSerializer(serializers.Serializer):
+    device_assignment_id = serializers.IntegerField(required=True)
+    started_at = serializers.DateTimeField(required=False)
+
+
+class MeasurementSessionOutputSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    device_assignment_id = serializers.IntegerField(read_only=True)
+    device_id = serializers.IntegerField(
+        source="device_assignment.device_id", read_only=True
+    )
+    patient_id = serializers.IntegerField(
+        source="device_assignment.patient_id",
+        read_only=True,
+    )
+    tenant_id = serializers.IntegerField(read_only=True)
+    started_at = serializers.DateTimeField(read_only=True)
+    stopped_at = serializers.DateTimeField(read_only=True)
+    status = serializers.CharField(read_only=True)
+
+
+class MeasurementSessionStartOutputSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    started_at = serializers.DateTimeField(read_only=True)
+    status = serializers.CharField(read_only=True)
