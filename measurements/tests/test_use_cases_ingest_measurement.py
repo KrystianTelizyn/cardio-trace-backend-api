@@ -5,33 +5,31 @@ from zoneinfo import ZoneInfo
 from django.test import TestCase
 from django.utils import timezone
 
-from devices.models import DeviceAssignment
 from measurements.exceptions import (
     MeasurementDroppedSessionStopped,
     MeasurementSessionNotFoundError,
 )
-from measurements.models import MeasurementSession
 from measurements.use_cases import IngestMeasurement
 from tests.factories import DeviceFactory, DoctorProfileFactory
-from tests.mixins import DevicesFixtureMixin, TenantUsersMixin, WrongTenantMixin
+from tests.mixins import (
+    DevicesFixtureMixin,
+    MeasurementFixturesMixin,
+    TenantUsersMixin,
+    WrongTenantMixin,
+)
 
 
 class IngestMeasurementUseCaseTests(
-    TenantUsersMixin, WrongTenantMixin, DevicesFixtureMixin, TestCase
+    TenantUsersMixin,
+    WrongTenantMixin,
+    DevicesFixtureMixin,
+    MeasurementFixturesMixin,
+    TestCase,
 ):
     def test_creates_measurement_for_session(self) -> None:
-        assignment = DeviceAssignment.objects.create(
-            device=self.device,
-            patient=self.patient_profile,
-            doctor=self.doctor_profile,
-            tenant=self.tenant,
-            assigned_at=timezone.now(),
-            unassigned_at=None,
-        )
-        measurement_session = MeasurementSession.objects.create(
-            tenant=self.tenant,
+        assignment = self.create_active_assignment()
+        measurement_session = self.create_measurement_session(
             device_assignment=assignment,
-            started_at=timezone.now(),
         )
 
         timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
@@ -61,18 +59,10 @@ class IngestMeasurementUseCaseTests(
             )
 
     def test_raises_accepted_drop_when_session_is_stopped(self) -> None:
-        assignment = DeviceAssignment.objects.create(
-            device=self.device,
-            patient=self.patient_profile,
-            doctor=self.doctor_profile,
-            tenant=self.tenant,
-            assigned_at=timezone.now(),
-            unassigned_at=None,
-        )
-        measurement_session = MeasurementSession.objects.create(
-            tenant=self.tenant,
+        assignment = self.create_active_assignment()
+        measurement_session = self.create_measurement_session(
             device_assignment=assignment,
-            started_at=timezone.now(),
+            started_at=datetime.now(tz=ZoneInfo("UTC")),
             stopped_at=timezone.now(),
         )
 
@@ -86,18 +76,9 @@ class IngestMeasurementUseCaseTests(
             )
 
     def test_resolves_measurement_session_within_tenant(self) -> None:
-        assignment = DeviceAssignment.objects.create(
-            device=self.device,
-            patient=self.patient_profile,
-            doctor=self.doctor_profile,
-            tenant=self.tenant,
-            assigned_at=timezone.now(),
-            unassigned_at=None,
-        )
-        measurement_session = MeasurementSession.objects.create(
-            tenant=self.tenant,
+        assignment = self.create_active_assignment()
+        measurement_session = self.create_measurement_session(
             device_assignment=assignment,
-            started_at=timezone.now(),
         )
 
         other_device = DeviceFactory(
@@ -110,18 +91,15 @@ class IngestMeasurementUseCaseTests(
             user=self.other_doctor_user,
             name="Other Doc",
         )
-        other_assignment = DeviceAssignment.objects.create(
+        other_assignment = self.create_active_assignment(
             device=other_device,
             patient=self.other_patient_profile,
             doctor=other_doctor_profile,
             tenant=self.other_tenant,
-            assigned_at=timezone.now(),
-            unassigned_at=None,
         )
-        MeasurementSession.objects.create(
+        self.create_measurement_session(
             tenant=self.other_tenant,
             device_assignment=other_assignment,
-            started_at=timezone.now(),
         )
 
         timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))

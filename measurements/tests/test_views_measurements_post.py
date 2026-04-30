@@ -4,31 +4,27 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework import status
 
-from devices.models import DeviceAssignment
-from measurements.models import Measurement, MeasurementSession
-from tests.mixins import ApiClientMixin, DevicesFixtureMixin, TenantUsersMixin
+from measurements.models import Measurement
+from tests.mixins import (
+    ApiClientMixin,
+    DevicesFixtureMixin,
+    MeasurementFixturesMixin,
+    TenantUsersMixin,
+)
 
 
 class MeasurementIngestViewTests(
     ApiClientMixin,
     TenantUsersMixin,
     DevicesFixtureMixin,
+    MeasurementFixturesMixin,
     TestCase,
 ):
     def setUp(self) -> None:
         super().setUp()
-        assignment = DeviceAssignment.objects.create(
-            device=self.device,
-            patient=self.patient_profile,
-            doctor=self.doctor_profile,
-            tenant=self.tenant,
-            assigned_at=timezone.now(),
-            unassigned_at=None,
-        )
-        self.measurement_session = MeasurementSession.objects.create(
-            tenant=self.tenant,
+        assignment = self.create_active_assignment()
+        self.measurement_session = self.create_measurement_session(
             device_assignment=assignment,
-            started_at=timezone.now(),
         )
         self.valid_payload = {
             "measurement_session_id": self.measurement_session.id,
