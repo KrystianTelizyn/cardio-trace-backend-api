@@ -9,6 +9,7 @@ dependencies = [
     "djangorestframework",
     "psycopg[binary]",
     "python-dotenv",
+    "redis>=7.4.0",
     "ulid-py>=1.1.0",
 ]
 
@@ -26,4 +27,5 @@ dev = [
 [dependency-groups]
 dev = [
     "factory-boy>=3.3.3",
+    "fakeredis>=2.35.1",
 ]
