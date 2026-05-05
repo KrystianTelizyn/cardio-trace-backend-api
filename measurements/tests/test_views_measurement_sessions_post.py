@@ -8,6 +8,7 @@ from measurements.models import MeasurementSession
 from tests.mixins import (
     ApiClientMixin,
     DevicesFixtureMixin,
+    FakeRedisMixin,
     GatewayAuthMixin,
     MeasurementFixturesMixin,
     TenantUsersMixin,
@@ -15,6 +16,7 @@ from tests.mixins import (
 
 
 class MeasurementSessionStartViewTests(
+    FakeRedisMixin,
     ApiClientMixin,
     GatewayAuthMixin,
     TenantUsersMixin,

@@ -8,10 +8,16 @@ from measurements.exceptions import (
     MeasurementSessionNotFoundError,
 )
 from measurements.use_cases import StopMeasurementSession
-from tests.mixins import DevicesFixtureMixin, MeasurementFixturesMixin, TenantUsersMixin
+from tests.mixins import (
+    DevicesFixtureMixin,
+    FakeRedisMixin,
+    MeasurementFixturesMixin,
+    TenantUsersMixin,
+)
 
 
 class StopMeasurementSessionUseCaseTests(
+    FakeRedisMixin,
     TenantUsersMixin,
     DevicesFixtureMixin,
     MeasurementFixturesMixin,
