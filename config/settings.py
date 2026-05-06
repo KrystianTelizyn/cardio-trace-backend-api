@@ -72,6 +72,11 @@ DATABASES = {
 }
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+CACHE_TTL_DEVICE_NOT_FOUND = int(os.environ.get("CACHE_TTL_DEVICE_NOT_FOUND", "120"))
+CACHE_TTL_SESSION_NOT_FOUND = int(os.environ.get("CACHE_TTL_SESSION_NOT_FOUND", "30"))
+CACHE_TTL_DEVICE_SESSION_ACTIVE = int(
+    os.environ.get("CACHE_TTL_DEVICE_SESSION_ACTIVE", "3600")
+)
 
 
 # Internationalization

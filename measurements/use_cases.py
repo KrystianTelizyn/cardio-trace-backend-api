@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.conf import settings
 from django.db import IntegrityError
 from django.utils import timezone
 
@@ -84,6 +85,7 @@ class EnrichIngestionContext:
                 tenant_id=tenant.auth0_organization_id,
                 brand=brand,
                 serial_number=serial_number,
+                ttl=settings.CACHE_TTL_DEVICE_NOT_FOUND,
             )
             return None, None
 
@@ -99,17 +101,20 @@ class EnrichIngestionContext:
             brand=brand,
             serial_number=serial_number,
             device_uid=device.uid,
+            ttl=settings.CACHE_TTL_DEVICE_SESSION_ACTIVE,
         )
         if session_uid:
             self.routing_store.set_device_session(
                 tenant_id=tenant.auth0_organization_id,
                 device_uid=device.uid,
                 session_uid=session_uid,
+                ttl=settings.CACHE_TTL_DEVICE_SESSION_ACTIVE,
             )
         else:
-            self.routing_store.delete_device_session(
+            self.routing_store.set_device_session_not_found(
                 tenant_id=tenant.auth0_organization_id,
                 device_uid=device.uid,
+                ttl=settings.CACHE_TTL_SESSION_NOT_FOUND,
             )
 
         return device.uid, session_uid
@@ -169,6 +174,7 @@ class StartMeasurementSession:
             tenant_id=tenant.auth0_organization_id,
             device_uid=assignment.device.uid,
             session_uid=session.id,
+            ttl=settings.CACHE_TTL_DEVICE_SESSION_ACTIVE,
         )
 
         return session
@@ -212,9 +218,10 @@ class StopMeasurementSession:
         measurement_session.stopped_at = effective_stopped_at
         measurement_session.save(update_fields=["stopped_at"])
 
-        self.routing_store.delete_device_session(
+        self.routing_store.set_device_session_not_found(
             tenant_id=tenant.auth0_organization_id,
             device_uid=measurement_session.device_assignment.device.uid,
+            ttl=settings.CACHE_TTL_SESSION_NOT_FOUND,
         )
 
         return measurement_session

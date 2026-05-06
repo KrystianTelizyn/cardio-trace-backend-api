@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.conf import settings
 
 from measurements.cache import DEVICE_NOT_FOUND_SENTINEL
 from measurements.use_cases import EnrichIngestionContext
@@ -56,6 +57,11 @@ class EnrichIngestionContextUseCaseTests(
             f"device_map:{self.tenant.auth0_organization_id}:missing-brand:missing-sn"
         )
         self.assertEqual(cached_value, DEVICE_NOT_FOUND_SENTINEL)
+        ttl_seconds = self.fake_redis.ttl(
+            f"device_map:{self.tenant.auth0_organization_id}:missing-brand:missing-sn"
+        )
+        self.assertGreater(ttl_seconds, 0)
+        self.assertLessEqual(ttl_seconds, settings.CACHE_TTL_DEVICE_NOT_FOUND)
 
     def test_is_tenant_scoped_for_same_serial_and_brand(self) -> None:
         other_device = DeviceFactory(
