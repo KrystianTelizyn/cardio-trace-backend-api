@@ -30,7 +30,8 @@ class MeasurementIngestViewTests(
             "measurement_session_id": self.measurement_session.id,
             "timestamp": "2026-01-10T12:30:00Z",
             "heart_rate": 74.2,
-            "hrv": 40.1,
+            "rmssd": 40.1,
+            "sdnn": 52.0,
         }
 
     def test_ingests_measurement_201(self) -> None:
@@ -45,7 +46,8 @@ class MeasurementIngestViewTests(
         data = response.json()
         self.assertEqual(data["measurement_session_id"], self.measurement_session.id)
         self.assertEqual(data["heart_rate"], self.valid_payload["heart_rate"])
-        self.assertEqual(data["hrv"], self.valid_payload["hrv"])
+        self.assertEqual(data["rmssd"], self.valid_payload["rmssd"])
+        self.assertEqual(data["sdnn"], self.valid_payload["sdnn"])
         self.assertIsInstance(uuid.UUID(data["id"]), uuid.UUID)
 
         measurement = Measurement.objects.get(id=data["id"])
@@ -53,6 +55,43 @@ class MeasurementIngestViewTests(
             measurement.measurement_session_id, self.measurement_session.id
         )
         self.assertEqual(measurement.tenant_id, self.tenant.id)
+
+    def test_ingests_measurement_with_null_metrics_201(self) -> None:
+        response = self.client.post(
+            "/measurements",
+            data={
+                "measurement_session_id": self.measurement_session.id,
+                "timestamp": "2026-01-10T12:31:00Z",
+            },
+            format="json",
+            HTTP_X_TENANT_ID=self.tenant.auth0_organization_id,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertIsNone(data["heart_rate"])
+        self.assertIsNone(data["rmssd"])
+        self.assertIsNone(data["sdnn"])
+
+    def test_returns_202_for_duplicate_frame(self) -> None:
+        self.client.post(
+            "/measurements",
+            data=self.valid_payload,
+            format="json",
+            HTTP_X_TENANT_ID=self.tenant.auth0_organization_id,
+        )
+        response = self.client.post(
+            "/measurements",
+            data=self.valid_payload,
+            format="json",
+            HTTP_X_TENANT_ID=self.tenant.auth0_organization_id,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(
+            response.json()["error"]["code"],
+            "measurement_duplicate_frame_dropped",
+        )
 
     def test_returns_400_for_invalid_payload(self) -> None:
         response = self.client.post(

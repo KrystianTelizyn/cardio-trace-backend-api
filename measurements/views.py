@@ -38,7 +38,8 @@ class MeasurementIngestView(APIView):
             tenant=tenant,
             timestamp=validated_data["timestamp"],
             heart_rate=validated_data["heart_rate"],
-            hrv=validated_data["hrv"],
+            rmssd=validated_data["rmssd"],
+            sdnn=validated_data["sdnn"],
         )
         output = MeasurementIngestOutputSerializer(measurement)
         return Response(output.data, status=status.HTTP_201_CREATED)
