@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+import redis
 from django.test import TestCase
 from django.conf import settings
 
@@ -91,3 +94,25 @@ class EnrichIngestionContextUseCaseTests(
         self.assertEqual(device_uid, self.device.uid)
         self.assertNotEqual(device_uid, other_device.uid)
         self.assertNotEqual(session_uid, other_session.id)
+
+    def test_returns_nulls_when_device_not_found_and_redis_cache_write_fails(
+        self,
+    ) -> None:
+        use_case = EnrichIngestionContext()
+
+        with (
+            self.assertLogs("measurements.use_cases", level="WARNING"),
+            patch.object(
+                use_case.routing_store,
+                "set_device_map_not_found",
+                side_effect=redis.ConnectionError("redis down"),
+            ),
+        ):
+            device_uid, session_uid = use_case.execute(
+                tenant=self.tenant,
+                serial_number="missing-sn",
+                brand="missing-brand",
+            )
+
+        self.assertIsNone(device_uid)
+        self.assertIsNone(session_uid)
