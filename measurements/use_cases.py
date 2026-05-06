@@ -5,6 +5,10 @@ from accounts.models import Tenant
 from devices.models import DeviceAssignment
 from devices.exceptions import DeviceIdentityNotFoundError
 from devices.models import Device
+from measurements.cache import (
+    IngestionRoutingStore,
+    build_ingestion_routing_store,
+)
 from measurements.exceptions import (
     ActiveMeasurementSessionAlreadyExistsError,
     MeasurementDroppedSessionStopped,
@@ -50,6 +54,9 @@ class IngestMeasurement:
 
 
 class EnrichIngestionContext:
+    def __init__(self, *, routing_store: IngestionRoutingStore | None = None) -> None:
+        self.routing_store = routing_store or build_ingestion_routing_store()
+
     def execute(
         self,
         *,
@@ -75,10 +82,32 @@ class EnrichIngestionContext:
             stopped_at__isnull=True,
         ).first()
         session_uid = active_session.id if active_session else None
+
+        self.routing_store.set_device_map(
+            tenant_id=tenant.id,
+            brand=brand,
+            serial_number=serial_number,
+            device_uid=device.uid,
+        )
+        if session_uid:
+            self.routing_store.set_device_session(
+                tenant_id=tenant.id,
+                device_uid=device.uid,
+                session_uid=session_uid,
+            )
+        else:
+            self.routing_store.delete_device_session(
+                tenant_id=tenant.id,
+                device_uid=device.uid,
+            )
+
         return device.uid, session_uid
 
 
 class StartMeasurementSession:
+    def __init__(self, *, routing_store: IngestionRoutingStore | None = None) -> None:
+        self.routing_store = routing_store or build_ingestion_routing_store()
+
     def execute(
         self,
         *,
@@ -88,11 +117,15 @@ class StartMeasurementSession:
     ) -> MeasurementSession:
         effective_started_at = started_at or timezone.now()
 
-        assignment = DeviceAssignment.objects.filter(
-            id=device_assignment_id,
-            tenant=tenant,
-            unassigned_at__isnull=True,
-        ).first()
+        assignment = (
+            DeviceAssignment.objects.filter(
+                id=device_assignment_id,
+                tenant=tenant,
+                unassigned_at__isnull=True,
+            )
+            .select_related("device")
+            .first()
+        )
         if not assignment:
             raise MeasurementSessionAssignmentNotFoundError(
                 device_assignment_id=device_assignment_id,
@@ -115,14 +148,25 @@ class StartMeasurementSession:
                 device_assignment_id=device_assignment_id
             )
 
-        return MeasurementSession.objects.create(
+        session = MeasurementSession.objects.create(
             tenant=tenant,
             device_assignment=assignment,
             started_at=effective_started_at,
         )
 
+        self.routing_store.set_device_session(
+            tenant_id=tenant.id,
+            device_uid=assignment.device.uid,
+            session_uid=session.id,
+        )
+
+        return session
+
 
 class StopMeasurementSession:
+    def __init__(self, *, routing_store: IngestionRoutingStore | None = None) -> None:
+        self.routing_store = routing_store or build_ingestion_routing_store()
+
     def execute(
         self,
         *,
@@ -130,10 +174,14 @@ class StopMeasurementSession:
         tenant: Tenant,
         stopped_at: datetime | None = None,
     ) -> MeasurementSession:
-        measurement_session = MeasurementSession.objects.filter(
-            id=measurement_session_id,
-            tenant=tenant,
-        ).first()
+        measurement_session = (
+            MeasurementSession.objects.filter(
+                id=measurement_session_id,
+                tenant=tenant,
+            )
+            .select_related("device_assignment__device")
+            .first()
+        )
         if not measurement_session:
             raise MeasurementSessionNotFoundError(
                 measurement_session_id=measurement_session_id,
@@ -152,4 +200,10 @@ class StopMeasurementSession:
 
         measurement_session.stopped_at = effective_stopped_at
         measurement_session.save(update_fields=["stopped_at"])
+
+        self.routing_store.delete_device_session(
+            tenant_id=tenant.id,
+            device_uid=measurement_session.device_assignment.device.uid,
+        )
+
         return measurement_session

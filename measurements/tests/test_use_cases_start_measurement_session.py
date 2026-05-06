@@ -9,10 +9,16 @@ from measurements.exceptions import (
     MeasurementSessionStartOutsideAssignmentWindowError,
 )
 from measurements.use_cases import StartMeasurementSession
-from tests.mixins import DevicesFixtureMixin, MeasurementFixturesMixin, TenantUsersMixin
+from tests.mixins import (
+    DevicesFixtureMixin,
+    FakeRedisMixin,
+    MeasurementFixturesMixin,
+    TenantUsersMixin,
+)
 
 
 class StartMeasurementSessionUseCaseTests(
+    FakeRedisMixin,
     TenantUsersMixin,
     DevicesFixtureMixin,
     MeasurementFixturesMixin,

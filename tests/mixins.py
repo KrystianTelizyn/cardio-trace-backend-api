@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import fakeredis
 from rest_framework.test import APIClient
 from django.utils import timezone
 
 from accounts.models import DoctorProfile, PatientProfile, Tenant, User
+import config.redis as config_redis
 from devices.models import Device, DeviceAssignment
+import measurements.cache as measurements_cache
 from measurements.models import MeasurementSession
 from tests.auth import gateway_headers
 from tests.factories import (
@@ -25,6 +28,37 @@ class ApiClientMixin:
     def setUp(self) -> None:
         super().setUp()
         self.client = APIClient()
+
+
+class FakeRedisMixin:
+    """Replace the shared Redis client with a fakeredis instance for each test."""
+
+    fake_redis: fakeredis.FakeRedis
+    _original_get_client: object = None
+    _original_build_routing_store: object = None
+
+    def setUp(self) -> None:
+        super().setUp()  # type: ignore[misc]
+        self._original_get_client = config_redis.get_client
+        self._original_build_routing_store = (
+            measurements_cache.build_ingestion_routing_store
+        )
+        self.fake_redis = fakeredis.FakeRedis(decode_responses=True)
+        config_redis.get_client.cache_clear()
+        config_redis.get_client = lambda: self.fake_redis  # type: ignore[assignment]
+        measurements_cache.build_ingestion_routing_store = (
+            lambda: measurements_cache.RedisIngestionRoutingStore(
+                client=self.fake_redis
+            )
+        )  # type: ignore[assignment]
+
+    def tearDown(self) -> None:
+        config_redis.get_client = self._original_get_client  # type: ignore[assignment]
+        measurements_cache.build_ingestion_routing_store = (
+            self._original_build_routing_store
+        )  # type: ignore[assignment]
+        config_redis.get_client.cache_clear()
+        super().tearDown()  # type: ignore[misc]
 
 
 class GatewayAuthMixin:

@@ -8,6 +8,7 @@ from rest_framework import status
 from tests.mixins import (
     ApiClientMixin,
     DevicesFixtureMixin,
+    FakeRedisMixin,
     GatewayAuthMixin,
     MeasurementFixturesMixin,
     TenantUsersMixin,
@@ -15,6 +16,7 @@ from tests.mixins import (
 
 
 class MeasurementSessionStopViewTests(
+    FakeRedisMixin,
     ApiClientMixin,
     GatewayAuthMixin,
     TenantUsersMixin,

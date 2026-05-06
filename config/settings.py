@@ -71,6 +71,8 @@ DATABASES = {
     }
 }
 
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

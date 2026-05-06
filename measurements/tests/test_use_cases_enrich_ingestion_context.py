@@ -5,6 +5,7 @@ from measurements.use_cases import EnrichIngestionContext
 from tests.factories import DeviceFactory, DoctorProfileFactory
 from tests.mixins import (
     DevicesFixtureMixin,
+    FakeRedisMixin,
     MeasurementFixturesMixin,
     TenantUsersMixin,
     WrongTenantMixin,
@@ -12,6 +13,7 @@ from tests.mixins import (
 
 
 class EnrichIngestionContextUseCaseTests(
+    FakeRedisMixin,
     TenantUsersMixin,
     WrongTenantMixin,
     DevicesFixtureMixin,

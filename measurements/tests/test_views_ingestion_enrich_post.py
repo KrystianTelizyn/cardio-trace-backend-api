@@ -4,12 +4,14 @@ from rest_framework import status
 from tests.mixins import (
     ApiClientMixin,
     DevicesFixtureMixin,
+    FakeRedisMixin,
     MeasurementFixturesMixin,
     TenantUsersMixin,
 )
 
 
 class IngestionEnrichViewTests(
+    FakeRedisMixin,
     ApiClientMixin,
     TenantUsersMixin,
     DevicesFixtureMixin,

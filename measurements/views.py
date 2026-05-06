@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from config.authentication import GatewayAuthentication, InternalTenantAuthentication
+from measurements.cache import build_ingestion_routing_store
 from measurements.serializers import (
     IngestionEnrichInputSerializer,
     IngestionEnrichOutputSerializer,
@@ -52,7 +53,10 @@ class IngestionEnrichView(APIView):
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
 
-        device_uid, session_uid = EnrichIngestionContext().execute(
+        routing_store = build_ingestion_routing_store()
+        device_uid, session_uid = EnrichIngestionContext(
+            routing_store=routing_store
+        ).execute(
             tenant=request.auth["tenant"],
             serial_number=validated_data["serial_number"],
             brand=validated_data["brand"],
@@ -72,7 +76,10 @@ class MeasurementSessionStartView(APIView):
         serializer = MeasurementSessionStartInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        measurement_session = StartMeasurementSession().execute(
+        routing_store = build_ingestion_routing_store()
+        measurement_session = StartMeasurementSession(
+            routing_store=routing_store
+        ).execute(
             device_assignment_id=serializer.validated_data["device_assignment_id"],
             tenant=request.user.tenant,
             started_at=serializer.validated_data.get("started_at"),
@@ -89,7 +96,10 @@ class MeasurementSessionStopView(APIView):
         serializer = MeasurementSessionStopInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        measurement_session = StopMeasurementSession().execute(
+        routing_store = build_ingestion_routing_store()
+        measurement_session = StopMeasurementSession(
+            routing_store=routing_store
+        ).execute(
             measurement_session_id=session_id,
             tenant=request.user.tenant,
             stopped_at=serializer.validated_data.get("stopped_at"),
