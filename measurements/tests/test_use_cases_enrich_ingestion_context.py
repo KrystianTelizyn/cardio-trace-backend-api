@@ -53,7 +53,7 @@ class EnrichIngestionContextUseCaseTests(
         self.assertIsNone(device_uid)
         self.assertIsNone(session_uid)
         cached_value = self.fake_redis.get(
-            f"device_map:{self.tenant.id}:missing-brand:missing-sn"
+            f"device_map:{self.tenant.auth0_organization_id}:missing-brand:missing-sn"
         )
         self.assertEqual(cached_value, DEVICE_NOT_FOUND_SENTINEL)
 

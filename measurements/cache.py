@@ -15,11 +15,11 @@ class IngestionRoutingStore(Protocol):
     def delete_device_session(self, *, tenant_id: int, device_uid: str) -> None: ...
 
     def set_device_map(
-        self, *, tenant_id: int, brand: str, serial_number: str, device_uid: str
+        self, *, tenant_id: str, brand: str, serial_number: str, device_uid: str
     ) -> None: ...
 
     def set_device_map_not_found(
-        self, *, tenant_id: int, brand: str, serial_number: str
+        self, *, tenant_id: str, brand: str, serial_number: str
     ) -> None: ...
 
 
@@ -38,13 +38,13 @@ class RedisIngestionRoutingStore:
         self.client.delete(key)
 
     def set_device_map(
-        self, *, tenant_id: int, brand: str, serial_number: str, device_uid: str
+        self, *, tenant_id: str, brand: str, serial_number: str, device_uid: str
     ) -> None:
         key = f"device_map:{tenant_id}:{brand}:{serial_number}"
         self.client.set(key, device_uid)
 
     def set_device_map_not_found(
-        self, *, tenant_id: int, brand: str, serial_number: str
+        self, *, tenant_id: str, brand: str, serial_number: str
     ) -> None:
         key = f"device_map:{tenant_id}:{brand}:{serial_number}"
         self.client.set(key, DEVICE_NOT_FOUND_SENTINEL)

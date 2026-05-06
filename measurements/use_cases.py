@@ -81,7 +81,7 @@ class EnrichIngestionContext:
         ).first()
         if not device:
             self.routing_store.set_device_map_not_found(
-                tenant_id=tenant.id,
+                tenant_id=tenant.auth0_organization_id,
                 brand=brand,
                 serial_number=serial_number,
             )
@@ -95,20 +95,20 @@ class EnrichIngestionContext:
         session_uid = active_session.id if active_session else None
 
         self.routing_store.set_device_map(
-            tenant_id=tenant.id,
+            tenant_id=tenant.auth0_organization_id,
             brand=brand,
             serial_number=serial_number,
             device_uid=device.uid,
         )
         if session_uid:
             self.routing_store.set_device_session(
-                tenant_id=tenant.id,
+                tenant_id=tenant.auth0_organization_id,
                 device_uid=device.uid,
                 session_uid=session_uid,
             )
         else:
             self.routing_store.delete_device_session(
-                tenant_id=tenant.id,
+                tenant_id=tenant.auth0_organization_id,
                 device_uid=device.uid,
             )
 
@@ -166,7 +166,7 @@ class StartMeasurementSession:
         )
 
         self.routing_store.set_device_session(
-            tenant_id=tenant.id,
+            tenant_id=tenant.auth0_organization_id,
             device_uid=assignment.device.uid,
             session_uid=session.id,
         )
@@ -213,7 +213,7 @@ class StopMeasurementSession:
         measurement_session.save(update_fields=["stopped_at"])
 
         self.routing_store.delete_device_session(
-            tenant_id=tenant.id,
+            tenant_id=tenant.auth0_organization_id,
             device_uid=measurement_session.device_assignment.device.uid,
         )
 

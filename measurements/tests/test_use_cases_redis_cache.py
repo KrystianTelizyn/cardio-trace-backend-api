@@ -34,7 +34,7 @@ class StartMeasurementSessionRedisCacheTests(
             started_at=datetime(2026, 1, 10, 11, 0, tzinfo=ZoneInfo("UTC")),
         )
 
-        key = f"device_session:{self.tenant.id}:{self.device.uid}"
+        key = f"device_session:{self.tenant.auth0_organization_id}:{self.device.uid}"
         self.assertEqual(self.fake_redis.get(key), session.id)
 
 
@@ -53,7 +53,7 @@ class StopMeasurementSessionRedisCacheTests(
             device_assignment=assignment,
             started_at=datetime(2026, 1, 10, 11, 0, tzinfo=ZoneInfo("UTC")),
         )
-        key = f"device_session:{self.tenant.id}:{self.device.uid}"
+        key = f"device_session:{self.tenant.auth0_organization_id}:{self.device.uid}"
         self.fake_redis.set(key, session.id)
 
         StopMeasurementSession().execute(
@@ -73,7 +73,7 @@ class StopMeasurementSessionRedisCacheTests(
             started_at=datetime(2026, 1, 10, 11, 0, tzinfo=ZoneInfo("UTC")),
             stopped_at=datetime(2026, 1, 10, 11, 30, tzinfo=ZoneInfo("UTC")),
         )
-        key = f"device_session:{self.tenant.id}:{self.device.uid}"
+        key = f"device_session:{self.tenant.auth0_organization_id}:{self.device.uid}"
         self.fake_redis.set(key, "preserved-value")
 
         StopMeasurementSession().execute(
@@ -105,17 +105,21 @@ class EnrichIngestionContextRedisCacheTests(
         )
 
         device_map_key = (
-            f"device_map:{self.tenant.id}:{self.device.brand}:"
+            f"device_map:{self.tenant.auth0_organization_id}:{self.device.brand}:"
             f"{self.device.serial_number}"
         )
-        device_session_key = f"device_session:{self.tenant.id}:{self.device.uid}"
+        device_session_key = (
+            f"device_session:{self.tenant.auth0_organization_id}:{self.device.uid}"
+        )
         self.assertEqual(self.fake_redis.get(device_map_key), self.device.uid)
         self.assertEqual(self.fake_redis.get(device_session_key), session.id)
 
     def test_sets_device_map_and_deletes_device_session_when_no_active_session(
         self,
     ) -> None:
-        device_session_key = f"device_session:{self.tenant.id}:{self.device.uid}"
+        device_session_key = (
+            f"device_session:{self.tenant.auth0_organization_id}:{self.device.uid}"
+        )
         self.fake_redis.set(device_session_key, "stale-session-id")
 
         EnrichIngestionContext().execute(
@@ -125,7 +129,7 @@ class EnrichIngestionContextRedisCacheTests(
         )
 
         device_map_key = (
-            f"device_map:{self.tenant.id}:{self.device.brand}:"
+            f"device_map:{self.tenant.auth0_organization_id}:{self.device.brand}:"
             f"{self.device.serial_number}"
         )
         self.assertEqual(self.fake_redis.get(device_map_key), self.device.uid)
