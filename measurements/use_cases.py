@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from accounts.models import Tenant
 from devices.models import DeviceAssignment
-from devices.exceptions import DeviceIdentityNotFoundError
 from devices.models import Device
 from measurements.cache import (
     IngestionRoutingStore,
@@ -74,18 +73,19 @@ class EnrichIngestionContext:
         tenant: Tenant,
         serial_number: str,
         brand: str,
-    ) -> tuple[str, str | None]:
+    ) -> tuple[str | None, str | None]:
         device = Device.objects.filter(
             tenant=tenant,
             serial_number=serial_number,
             brand=brand,
         ).first()
         if not device:
-            raise DeviceIdentityNotFoundError(
+            self.routing_store.set_device_map_not_found(
                 tenant_id=tenant.id,
-                serial_number=serial_number,
                 brand=brand,
+                serial_number=serial_number,
             )
+            return None, None
 
         active_session = MeasurementSession.objects.filter(
             tenant=tenant,

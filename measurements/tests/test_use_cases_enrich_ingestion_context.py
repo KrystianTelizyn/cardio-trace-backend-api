@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from devices.exceptions import DeviceIdentityNotFoundError
+from measurements.cache import DEVICE_NOT_FOUND_SENTINEL
 from measurements.use_cases import EnrichIngestionContext
 from tests.factories import DeviceFactory, DoctorProfileFactory
 from tests.mixins import (
@@ -43,13 +43,19 @@ class EnrichIngestionContextUseCaseTests(
         self.assertEqual(device_uid, self.device.uid)
         self.assertIsNone(session_uid)
 
-    def test_raises_for_unknown_device_identity(self) -> None:
-        with self.assertRaises(DeviceIdentityNotFoundError):
-            EnrichIngestionContext().execute(
-                tenant=self.tenant,
-                serial_number="missing-sn",
-                brand="missing-brand",
-            )
+    def test_returns_nulls_and_caches_none_for_unknown_device_identity(self) -> None:
+        device_uid, session_uid = EnrichIngestionContext().execute(
+            tenant=self.tenant,
+            serial_number="missing-sn",
+            brand="missing-brand",
+        )
+
+        self.assertIsNone(device_uid)
+        self.assertIsNone(session_uid)
+        cached_value = self.fake_redis.get(
+            f"device_map:{self.tenant.id}:missing-brand:missing-sn"
+        )
+        self.assertEqual(cached_value, DEVICE_NOT_FOUND_SENTINEL)
 
     def test_is_tenant_scoped_for_same_serial_and_brand(self) -> None:
         other_device = DeviceFactory(
