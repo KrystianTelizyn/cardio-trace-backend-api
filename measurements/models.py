@@ -75,6 +75,15 @@ class Measurement(models.Model):
         related_name="measurements",
     )
     timestamp = models.DateTimeField()
-    heart_rate = models.FloatField()
-    hrv = models.FloatField()
+    heart_rate = models.FloatField(null=True, blank=True)
+    rmssd = models.FloatField(null=True, blank=True)
+    sdnn = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "measurement_session", "timestamp"],
+                name="uniq_measurement_per_session_ts",
+            ),
+        ]

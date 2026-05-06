@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from measurements.exceptions import (
+    MeasurementDuplicateFrameDropped,
     MeasurementDroppedSessionStopped,
     MeasurementSessionNotFoundError,
 )
@@ -38,7 +39,8 @@ class IngestMeasurementUseCaseTests(
             tenant=self.tenant,
             timestamp=timestamp,
             heart_rate=75.5,
-            hrv=42.3,
+            rmssd=42.3,
+            sdnn=55.0,
         )
 
         self.assertIsInstance(measurement.id, uuid.UUID)
@@ -46,7 +48,54 @@ class IngestMeasurementUseCaseTests(
         self.assertEqual(measurement.tenant, self.tenant)
         self.assertEqual(measurement.timestamp, timestamp)
         self.assertEqual(measurement.heart_rate, 75.5)
-        self.assertEqual(measurement.hrv, 42.3)
+        self.assertEqual(measurement.rmssd, 42.3)
+        self.assertEqual(measurement.sdnn, 55.0)
+
+    def test_accepts_null_metrics(self) -> None:
+        assignment = self.create_active_assignment()
+        measurement_session = self.create_measurement_session(
+            device_assignment=assignment,
+        )
+        timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
+
+        measurement = IngestMeasurement().execute(
+            measurement_session_id=measurement_session.id,
+            tenant=self.tenant,
+            timestamp=timestamp,
+            heart_rate=None,
+            rmssd=None,
+            sdnn=None,
+        )
+
+        self.assertIsNone(measurement.heart_rate)
+        self.assertIsNone(measurement.rmssd)
+        self.assertIsNone(measurement.sdnn)
+
+    def test_raises_duplicate_dropped_for_same_session_timestamp(self) -> None:
+        assignment = self.create_active_assignment()
+        measurement_session = self.create_measurement_session(
+            device_assignment=assignment,
+        )
+        timestamp = datetime(2026, 1, 10, 12, 30, tzinfo=ZoneInfo("UTC"))
+
+        IngestMeasurement().execute(
+            measurement_session_id=measurement_session.id,
+            tenant=self.tenant,
+            timestamp=timestamp,
+            heart_rate=70.0,
+            rmssd=30.0,
+            sdnn=40.0,
+        )
+
+        with self.assertRaises(MeasurementDuplicateFrameDropped):
+            IngestMeasurement().execute(
+                measurement_session_id=measurement_session.id,
+                tenant=self.tenant,
+                timestamp=timestamp,
+                heart_rate=71.0,
+                rmssd=31.0,
+                sdnn=41.0,
+            )
 
     def test_raises_session_not_found_for_unknown_id(self) -> None:
         with self.assertRaises(MeasurementSessionNotFoundError):
@@ -55,7 +104,8 @@ class IngestMeasurementUseCaseTests(
                 tenant=self.tenant,
                 timestamp=datetime.now(tz=ZoneInfo("UTC")),
                 heart_rate=70.0,
-                hrv=30.0,
+                rmssd=30.0,
+                sdnn=40.0,
             )
 
     def test_raises_accepted_drop_when_session_is_stopped(self) -> None:
@@ -72,7 +122,8 @@ class IngestMeasurementUseCaseTests(
                 tenant=self.tenant,
                 timestamp=datetime.now(tz=ZoneInfo("UTC")),
                 heart_rate=70.0,
-                hrv=30.0,
+                rmssd=30.0,
+                sdnn=40.0,
             )
 
     def test_resolves_measurement_session_within_tenant(self) -> None:
@@ -108,7 +159,8 @@ class IngestMeasurementUseCaseTests(
             tenant=self.tenant,
             timestamp=timestamp,
             heart_rate=75.5,
-            hrv=42.3,
+            rmssd=42.3,
+            sdnn=50.0,
         )
 
         self.assertEqual(measurement.tenant, self.tenant)

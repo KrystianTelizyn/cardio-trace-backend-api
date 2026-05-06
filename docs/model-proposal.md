@@ -75,10 +75,11 @@ Represents the patient-confirmed period when the assigned HR monitor is actually
 * tenant_id (FK → Tenants)
 * measurement_session_id (FK → MeasurementSessions)
 * timestamp
-* heart_rate
-* hrv
+* heart_rate (nullable)
+* rmssd (nullable, HRV RMSSD in ms)
+* sdnn (nullable, HRV SDNN in ms)
 
-Device, patient, and assignment ownership are derived through `measurement_session_id`.
+Device, patient, and assignment ownership are derived through `measurement_session_id`. Frames are unique per tenant, session, and timestamp (duplicates are dropped on ingest).
 
 ## Drugs
 

@@ -4,16 +4,18 @@ from rest_framework import serializers
 class MeasurementIngestInputSerializer(serializers.Serializer):
     measurement_session_id = serializers.CharField(required=True)
     timestamp = serializers.DateTimeField(required=True)
-    heart_rate = serializers.FloatField(required=True)
-    hrv = serializers.FloatField(required=True)
+    heart_rate = serializers.FloatField(required=False, allow_null=True, default=None)
+    rmssd = serializers.FloatField(required=False, allow_null=True, default=None)
+    sdnn = serializers.FloatField(required=False, allow_null=True, default=None)
 
 
 class MeasurementIngestOutputSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     measurement_session_id = serializers.CharField(read_only=True)
     timestamp = serializers.DateTimeField(read_only=True)
-    heart_rate = serializers.FloatField(read_only=True)
-    hrv = serializers.FloatField(read_only=True)
+    heart_rate = serializers.FloatField(read_only=True, allow_null=True)
+    rmssd = serializers.FloatField(read_only=True, allow_null=True)
+    sdnn = serializers.FloatField(read_only=True, allow_null=True)
 
 
 class IngestionEnrichInputSerializer(serializers.Serializer):

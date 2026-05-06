@@ -28,6 +28,21 @@ class MeasurementDroppedSessionStopped(DomainException):
         super().__init__(measurement_session_id=measurement_session_id)
 
 
+class MeasurementDuplicateFrameDropped(DomainException):
+    code: str = "measurement_duplicate_frame_dropped"
+    message_template: str = (
+        "Duplicate frame dropped for session {measurement_session_id} "
+        "at timestamp {timestamp}"
+    )
+    status_code: int = status.HTTP_202_ACCEPTED
+
+    def __init__(self, *, measurement_session_id: str, timestamp: str) -> None:
+        super().__init__(
+            measurement_session_id=measurement_session_id,
+            timestamp=timestamp,
+        )
+
+
 class MeasurementSessionAssignmentNotFoundError(DomainException):
     code: str = "measurement_session_assignment_not_found"
     message_template: str = (

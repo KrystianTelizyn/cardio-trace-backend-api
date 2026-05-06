@@ -167,8 +167,9 @@ Ingest a measurement from the sensor-hub pipeline. The ingestion service is resp
 |------------------------|----------|----------|-----------------------------------|
 | measurement_session_id | ulid     | yes      | Active session resolved upstream  |
 | timestamp              | datetime | yes      | Reading timestamp                 |
-| heart_rate             | float    | yes      | BPM                               |
-| hrv                    | float    | yes      | Heart rate variability (ms)       |
+| heart_rate             | float    | no       | BPM; omit or `null` if unknown    |
+| rmssd                  | float    | no       | HRV RMSSD (ms); omit or `null` if unknown |
+| sdnn                   | float    | no       | HRV SDNN (ms); omit or `null` if unknown |
 
 **Response 201:** Created Measurement object
 
@@ -177,10 +178,11 @@ Ingest a measurement from the sensor-hub pipeline. The ingestion service is resp
 | id                     | uuid     | Measurement identifier                  |
 | measurement_session_id | ulid     | Session provided by ingestion service   |
 | timestamp              | datetime |                                         |
-| heart_rate             | float    |                                         |
-| hrv                    | float    |                                         |
+| heart_rate             | float \| null | BPM; may be null                 |
+| rmssd                  | float \| null | HRV RMSSD (ms); may be null      |
+| sdnn                   | float \| null | HRV SDNN (ms); may be null       |
 
-**Errors:** `400` — validation error, `404` — measurement session not found, `202` — measurement frame dropped because measurement session is stopped (`measurement_dropped_session_stopped`)
+**Errors:** `400` — validation error, `404` — measurement session not found, `202` — measurement frame dropped because measurement session is stopped (`measurement_dropped_session_stopped`), or duplicate frame for the same session and timestamp (`measurement_duplicate_frame_dropped`)
 
 ---
 

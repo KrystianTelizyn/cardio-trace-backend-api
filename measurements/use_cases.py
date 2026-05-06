@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from django.db import IntegrityError
 from django.utils import timezone
 
 from accounts.models import Tenant
@@ -11,6 +13,7 @@ from measurements.cache import (
 )
 from measurements.exceptions import (
     ActiveMeasurementSessionAlreadyExistsError,
+    MeasurementDuplicateFrameDropped,
     MeasurementDroppedSessionStopped,
     MeasurementSessionAssignmentNotFoundError,
     MeasurementSessionInvalidStopTimeError,
@@ -27,8 +30,9 @@ class IngestMeasurement:
         measurement_session_id: str,
         tenant: Tenant,
         timestamp: datetime,
-        heart_rate: float,
-        hrv: float,
+        heart_rate: float | None,
+        rmssd: float | None,
+        sdnn: float | None,
     ) -> Measurement:
         measurement_session = MeasurementSession.objects.filter(
             id=measurement_session_id,
@@ -44,13 +48,20 @@ class IngestMeasurement:
                 measurement_session_id=measurement_session_id
             )
 
-        return Measurement.objects.create(
-            tenant=tenant,
-            measurement_session=measurement_session,
-            timestamp=timestamp,
-            heart_rate=heart_rate,
-            hrv=hrv,
-        )
+        try:
+            return Measurement.objects.create(
+                tenant=tenant,
+                measurement_session=measurement_session,
+                timestamp=timestamp,
+                heart_rate=heart_rate,
+                rmssd=rmssd,
+                sdnn=sdnn,
+            )
+        except IntegrityError:
+            raise MeasurementDuplicateFrameDropped(
+                measurement_session_id=measurement_session_id,
+                timestamp=timestamp.isoformat(),
+            ) from None
 
 
 class EnrichIngestionContext:

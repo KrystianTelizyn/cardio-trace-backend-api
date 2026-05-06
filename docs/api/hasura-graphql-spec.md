@@ -95,8 +95,9 @@ Hasura exposes nested relationships automatically. The SPA can query across thes
 | device     | object   | Nested Device               |
 | patient_id | int      |                             |
 | timestamp  | datetime | When the reading was taken  |
-| heart_rate | float    | Beats per minute            |
-| hrv        | float    | Heart rate variability (ms) |
+| heart_rate | float \| null | Beats per minute; may be null |
+| rmssd      | float \| null | HRV RMSSD (ms); may be null |
+| sdnn       | float \| null | HRV SDNN (ms); may be null |
 
 ### Prescription
 
