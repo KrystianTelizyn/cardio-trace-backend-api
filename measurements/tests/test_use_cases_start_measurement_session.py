@@ -1,6 +1,8 @@
 from datetime import datetime
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+import redis
 from django.test import TestCase
 
 from measurements.exceptions import (
@@ -77,3 +79,25 @@ class StartMeasurementSessionUseCaseTests(
                 tenant=self.tenant,
                 started_at=datetime(2026, 1, 10, 12, 0, tzinfo=ZoneInfo("UTC")),
             )
+
+    def test_starts_measurement_session_when_redis_cache_write_fails(self) -> None:
+        assignment = self.create_active_assignment(
+            assigned_at=datetime(2026, 1, 10, 10, 0, tzinfo=ZoneInfo("UTC")),
+        )
+        use_case = StartMeasurementSession()
+
+        with (
+            self.assertLogs("measurements.use_cases", level="WARNING"),
+            patch.object(
+                use_case.routing_store,
+                "set_device_session",
+                side_effect=redis.ConnectionError("redis down"),
+            ),
+        ):
+            session = use_case.execute(
+                device_assignment_id=assignment.id,
+                tenant=self.tenant,
+                started_at=datetime(2026, 1, 10, 11, 0, tzinfo=ZoneInfo("UTC")),
+            )
+
+        self.assertEqual(session.device_assignment_id, assignment.id)

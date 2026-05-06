@@ -24,7 +24,7 @@ class IngestionEnrichInputSerializer(serializers.Serializer):
 
 
 class IngestionEnrichOutputSerializer(serializers.Serializer):
-    device_uid = serializers.CharField(read_only=True)
+    device_uid = serializers.CharField(read_only=True, allow_null=True)
     session_uid = serializers.CharField(read_only=True, allow_null=True)
 
 

@@ -61,7 +61,7 @@ class IngestionEnrichViewTests(
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_returns_404_for_unknown_device_identity(self) -> None:
+    def test_returns_200_with_nulls_for_unknown_device_identity(self) -> None:
         payload = {
             "serial_number": "unknown-serial",
             "brand": "unknown-brand",
@@ -72,8 +72,9 @@ class IngestionEnrichViewTests(
             format="json",
             HTTP_X_TENANT_ID=self.tenant.auth0_organization_id,
         )
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.json()["error"]["code"], "device_identity_not_found")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.json()["device_uid"])
+        self.assertIsNone(response.json()["session_uid"])
 
     def test_returns_401_for_missing_tenant_header(self) -> None:
         response = self.client.post(
